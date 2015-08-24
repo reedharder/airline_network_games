@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 from itertools import product, combinations
 import ast
-os.chdir("C:/Users/Reed/Desktop/vaze_competition_paper")
+os.chdir("C:/Users/d29905p/documents/airline_competition_paper/code/network_games")
 #LOAD NEW KIND OF T100 file 
 
 '''
@@ -29,13 +29,16 @@ airports is a list of airports in the network
 freq_cuttoff is minimum daily frequency to consider
 ms_cuttoff is cumulative market share to consider in each market
 merge_HP: True if carrier HP is to be merged with UA
+only_big_carriers: if True, only carriers in list carriers_of_interest will be counted in constructing market type and market size, otherwise any that meet the frequency and marketshare cuttoffs will be included
+carriers_of_interest: list of carriers to be counted in categorizing a market size
 '''
-def nonstop_market_profile(output_file = "nonstop_competitive_markets.csv",aotp_fn = 'aotp_march.csv',directory="C:/Users/Reed/Desktop/vaze_competition_paper", quarters=[1,2,3,4], \
-    t100_fn="T100_2007.csv",p52_fn="P52_2007.csv", merge_HP=True, \
-    freq_cuttoff = .5, ms_cuttoff=.1, airports = ['SEA','PDX','SFO','SAN','LAX','LAS','PHX','OAK','ONT','SMF','SJC']):
+def nonstop_market_profile(output_file = "processed_data/nonstop_competitive_markets.csv",aotp_fn = 'bts_data/aotp_march.csv',directory="C:/Users/Reed/Desktop/vaze_competition_paper", quarters=[1,2,3,4], \
+    t100_fn="bts_data/T100_2007.csv",p52_fn="bts_data/P52_2007.csv", merge_HP=True, \
+    freq_cuttoff = .5, ms_cuttoff=.1, only_big_carriers=True, carriers_of_interest = ['AS','UA','US','WN'],airports = ['SEA','PDX','SFO','SAN','LAX','LAS','PHX','OAK','ONT','SMF','SJC']):
         
     #read in revelant bts files and supplementary data files 
-    os.chdir("C:/Users/Reed/Desktop/vaze_competition_paper")
+    
+    ##os.chdir(directory)
     t100 = pd.read_csv(t100_fn)
     p52 = pd.read_csv(p52_fn)
 
@@ -55,7 +58,8 @@ def nonstop_market_profile(output_file = "nonstop_competitive_markets.csv",aotp_
         relevant_t100['UNIQUE_CARRIER']=relevant_t100['UNIQUE_CARRIER'].replace('HP','US')
 
     #get relevant data from schedule P-5.2
-    relevant_p52 = p52[p52['REGION']=='D'][p52['QUARTER'].isin(quarters)]
+    relevant_p52_d = p52[p52['REGION']=='D']
+    relevant_p52=relevant_p52_d[relevant_p52_d['QUARTER'].isin(quarters)]
     
     #get aotp to get flight times
     aotp_mar = pd.read_csv(aotp_fn)
@@ -76,6 +80,8 @@ def nonstop_market_profile(output_file = "nonstop_competitive_markets.csv",aotp_
     t100fields =['BI_MARKET','UNIQUE_CARRIER','ORIGIN', 'DEST','AIRCRAFT_TYPE','DEPARTURES_SCHEDULED','DEPARTURES_PERFORMED','SEATS','PASSENGERS','DISTANCE','AIR_TIME']
     #daily departures, seats, passengers, avg distance, total airtime
     t100_summed = relevant_t100[t100fields].groupby(['UNIQUE_CARRIER','BI_MARKET','ORIGIN','DEST','AIRCRAFT_TYPE']).aggregate({'DEPARTURES_SCHEDULED':lambda x: np.sum(x),'DEPARTURES_PERFORMED':lambda x: np.sum(x),'SEATS':lambda x: np.sum(x)/(365/(4/len(quarters))),'PASSENGERS':lambda x: np.sum(x)/(365/(4/len(quarters))),'DISTANCE':np.mean,'AIR_TIME':lambda x: np.sum(x)}).reset_index()
+    if only_big_carriers:
+        t100_summed=t100_summed[t100_summed['UNIQUE_CARRIER'].isin(carriers_of_interest)]        
     #convert airtime to hours
     t100_summed['AIR_HOURS']=(t100_summed['AIR_TIME']/60)
     t100_summed['FLIGHT_TIME']=t100_summed['AIR_HOURS']/t100_summed['DEPARTURES_PERFORMED']
@@ -91,18 +97,18 @@ def nonstop_market_profile(output_file = "nonstop_competitive_markets.csv",aotp_
     #NOTE: FOR THIS HOURS AND FRACTION FOF TOTAL HOURS FOR FLIGHT FOR CARRIER MUST BE ADDED , I THINK IT CAN BE DONE HERE 
     t100_summed = t100_summed[t100_summed['PASSENGERS']>0]
     t100_summed = t100_summed[t100_summed['DEPARTURES_SCHEDULED']>0]    
-    t100_summed.to_csv('t100_summed.csv') # NOTE: SEE DISTRIBUTION WITHIN MARKETS, IS AVERAGING REASONABLE -> weight by passengers: before averaging markets: plane types back and forth might not be same , passengers more likely to correlate, but now we can test
+    t100_summed.to_csv('processed_data/t100_summed.csv') # NOTE: SEE DISTRIBUTION WITHIN MARKETS, IS AVERAGING REASONABLE -> weight by passengers: before averaging markets: plane types back and forth might not be same , passengers more likely to correlate, but now we can test
     #average flight cost between different types  
     t100fields =['BI_MARKET','ORIGIN','DEST','UNIQUE_CARRIER','AIRCRAFT_TYPE','DEPARTURES_SCHEDULED','SEATS','PASSENGERS','DISTANCE', 'DAILY_FREQ','FLIGHT_COST','FLIGHT_TIME','AIR_HOURS']
     t100_summed_avgs = t100_summed[t100fields].groupby(['UNIQUE_CARRIER','BI_MARKET']).apply(avg_costs)
     t100_craft_avg = t100_summed_avgs[t100fields].groupby(['UNIQUE_CARRIER','BI_MARKET','ORIGIN','DEST']).aggregate({'DEPARTURES_SCHEDULED':np.sum,'SEATS':np.sum,'PASSENGERS':np.sum,'DISTANCE':np.mean, 'DAILY_FREQ':np.sum,'FLIGHT_COST':np.mean,'FLIGHT_TIME':np.mean,'AIR_HOURS':np.sum}).reset_index()
     #textfile of t100 summed over months, to check passenger equivalence between market directions
-    t100_craft_avg.to_csv("t100_craft_avg.csv")
+    t100_craft_avg.to_csv("processed_data/t100_craft_avg.csv")
     #average values between segments sharing a bidirectional market 
     t100fields =['BI_MARKET','UNIQUE_CARRIER','DEPARTURES_SCHEDULED','SEATS','PASSENGERS','DISTANCE', 'DAILY_FREQ','FLIGHT_COST','FLIGHT_TIME','AIR_HOURS']
     t100_avgd = t100_craft_avg[t100fields].groupby(['UNIQUE_CARRIER','BI_MARKET']).aggregate({'DEPARTURES_SCHEDULED':np.mean,'DAILY_FREQ':np.mean,'SEATS':np.mean,'PASSENGERS':np.mean,'DISTANCE':np.mean,'FLIGHT_COST': np.mean,'FLIGHT_TIME':np.mean,'AIR_HOURS':np.mean}).reset_index()
     #save data frame to csv: costs and frequencies by market, carrier, aircraft type
-    t100_avgd.to_csv("t100_avgd.csv",sep="\t")  
+    t100_avgd.to_csv("processed_data/t100_avgd.csv",sep="\t")  
     #remove entries below daily frequency cuttoff
     t100_avgd_clip = t100_avgd[t100_avgd['DAILY_FREQ']>=freq_cuttoff]
     #group and rank carriers within markets
