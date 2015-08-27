@@ -93,6 +93,7 @@ while (sum(diffs(fixed_carrier == 0)>eps)>0) %loop until converges (just for non
             %set up profit function for this carrier
             profit_func=@(f_i)profit_stage1_network(f_i,carrier.coef, carrier.freq_inds,carrier.Markets,current_markets);
             %optimize frequencies of this carrier for profit
+            HERE ADD AN IF STATEMENT: IF WN, MAKE CORRECT MARKET SET TO !# USING BOUNDS, LATER WE CAN MAKE THIS A SEPERATE GROUP 
             [x_i, profit]=fmincon(profit_func,f_i,carrier.A,carrier.b,[],[],zeros(numel(carrier.Markets),1),ones(numel(carrier.Markets),1)*inf,[],options);
             %[x_i, profit]=fmincon(profit_func,f_i,[],[],[],[],zeros(numel(carrier.Markets),1),ones(numel(carrier.Markets),1)*inf,[],options);
             sprintf('carrier: %d',carrier_ind)
