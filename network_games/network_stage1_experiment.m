@@ -352,20 +352,20 @@ cd('C:/Users/d29905p/documents/airline_competition_paper/code/network_games')
 tic
 %%fns = textread('mkt_mod_fns.txt','%s');
 for coef_ind =[2, 4, 6, 9, 11, 13, 15, 17, 19, 21, 22] %[4, 6, 9, 11, 13, 15, 17, 19, 21, 22]
-    for modif =-1.5:.1:1.5 %.5:.1:1
+    for modif =-1.5:.1:2 %.5:.1:1
     %%for fn= 1:numel(fns)    
         modstr = num2str(modif,'%.1f');
         progress = sprintf('%d_%s',coef_ind,modstr);
         display(progress)
-        fn_open = sprintf('exp_files/carrier_data_basemod_mktDiv_noReg_%d_%s.txt',coef_ind,modstr);
+        fn_open = sprintf('exp_files/carrier_data_basemod_mktMod_REG_%d_%s.txt',coef_ind,modstr);
         %%fn_open = char(fns(fn));
         fid = fopen(fn_open,'r');
         %%display(fn_open)
         %carrier fixing 
                     %['AA','AS','MQ','OO','QX','UA','US','WN']
-        %fixed_carrier = [1   0    1    1    1    0    0    0];
+        fixed_carrier = [1   0    1    1    1    0    0    0];
                         % the four main carriers
-        fixed_carrier = [0 0 0 0];
+        %%fixed_carrier = [0 0 0 0];
         %optimization options
         options = optimset('Display', 'off') ;
 
@@ -514,7 +514,7 @@ for coef_ind =[2, 4, 6, 9, 11, 13, 15, 17, 19, 21, 22] %[4, 6, 9, 11, 13, 15, 17
             end
             row_ind = row_ind+segment_competitors(mk);
         end
-        fn_out = sprintf('exp_files/exp_results_mkDiv_noREG_%d_%s.txt',coef_ind,modstr);
+        fn_out = sprintf('exp_files/exp_results_mkMod_REG_%d_%s.txt',coef_ind,modstr);
         %%fn_out = strcat('exp_results_500_',fn_open(13:numel(fn_open)));
         dlmwrite(fn_out,freq_results_mat,'delimiter',',','precision','%.4f')
         display(loop)

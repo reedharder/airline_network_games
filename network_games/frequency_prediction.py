@@ -32,9 +32,9 @@ merge_HP: True if carrier HP is to be merged with UA
 only_big_carriers: if True, only carriers in list carriers_of_interest will be counted in constructing market type and market size, otherwise any that meet the frequency and marketshare cuttoffs will be included
 carriers_of_interest: list of carriers to be counted in categorizing a market size
 '''
-def nonstop_market_profile(output_file = "processed_data/nonstop_competitive_markets.csv",aotp_fn = 'bts_data/aotp_march.csv',directory="C:/Users/Reed/Desktop/vaze_competition_paper", quarters=[1,2,3,4], \
+def nonstop_market_profile(output_file = "processed_data/nonstop_competitive_markets_reg.csv",aotp_fn = 'bts_data/aotp_march.csv',directory="C:/Users/Reed/Desktop/vaze_competition_paper", quarters=[1,2,3,4], \
     t100_fn="bts_data/T100_2007.csv",p52_fn="bts_data/P52_2007.csv", merge_HP=True, \
-    freq_cuttoff = .5, ms_cuttoff=.1, only_big_carriers=True, carriers_of_interest = ['AS','UA','US','WN'],airports = ['SEA','PDX','SFO','SAN','LAX','LAS','PHX','OAK','ONT','SMF','SJC']):
+    freq_cuttoff = .5, ms_cuttoff=.1, only_big_carriers=False, carriers_of_interest = ['AS','UA','US','WN'],airports = ['SEA','PDX','SFO','SAN','LAX','LAS','PHX','OAK','ONT','SMF','SJC']):
         
     #read in revelant bts files and supplementary data files 
     
@@ -97,18 +97,18 @@ def nonstop_market_profile(output_file = "processed_data/nonstop_competitive_mar
     #NOTE: FOR THIS HOURS AND FRACTION FOF TOTAL HOURS FOR FLIGHT FOR CARRIER MUST BE ADDED , I THINK IT CAN BE DONE HERE 
     t100_summed = t100_summed[t100_summed['PASSENGERS']>0]
     t100_summed = t100_summed[t100_summed['DEPARTURES_SCHEDULED']>0]    
-    t100_summed.to_csv('processed_data/t100_summed.csv') # NOTE: SEE DISTRIBUTION WITHIN MARKETS, IS AVERAGING REASONABLE -> weight by passengers: before averaging markets: plane types back and forth might not be same , passengers more likely to correlate, but now we can test
+    t100_summed.to_csv('processed_data/t100_summed_reg.csv') # NOTE: SEE DISTRIBUTION WITHIN MARKETS, IS AVERAGING REASONABLE -> weight by passengers: before averaging markets: plane types back and forth might not be same , passengers more likely to correlate, but now we can test
     #average flight cost between different types  
     t100fields =['BI_MARKET','ORIGIN','DEST','UNIQUE_CARRIER','AIRCRAFT_TYPE','DEPARTURES_SCHEDULED','SEATS','PASSENGERS','DISTANCE', 'DAILY_FREQ','FLIGHT_COST','FLIGHT_TIME','AIR_HOURS']
     t100_summed_avgs = t100_summed[t100fields].groupby(['UNIQUE_CARRIER','BI_MARKET']).apply(avg_costs)
     t100_craft_avg = t100_summed_avgs[t100fields].groupby(['UNIQUE_CARRIER','BI_MARKET','ORIGIN','DEST']).aggregate({'DEPARTURES_SCHEDULED':np.sum,'SEATS':np.sum,'PASSENGERS':np.sum,'DISTANCE':np.mean, 'DAILY_FREQ':np.sum,'FLIGHT_COST':np.mean,'FLIGHT_TIME':np.mean,'AIR_HOURS':np.sum}).reset_index()
     #textfile of t100 summed over months, to check passenger equivalence between market directions
-    t100_craft_avg.to_csv("processed_data/t100_craft_avg.csv")
+    t100_craft_avg.to_csv("processed_data/t100_craft_avg_reg.csv")
     #average values between segments sharing a bidirectional market 
     t100fields =['BI_MARKET','UNIQUE_CARRIER','DEPARTURES_SCHEDULED','SEATS','PASSENGERS','DISTANCE', 'DAILY_FREQ','FLIGHT_COST','FLIGHT_TIME','AIR_HOURS']
     t100_avgd = t100_craft_avg[t100fields].groupby(['UNIQUE_CARRIER','BI_MARKET']).aggregate({'DEPARTURES_SCHEDULED':np.mean,'DAILY_FREQ':np.mean,'SEATS':np.mean,'PASSENGERS':np.mean,'DISTANCE':np.mean,'FLIGHT_COST': np.mean,'FLIGHT_TIME':np.mean,'AIR_HOURS':np.mean}).reset_index()
     #save data frame to csv: costs and frequencies by market, carrier, aircraft type
-    t100_avgd.to_csv("processed_data/t100_avgd.csv",sep="\t")  
+    t100_avgd.to_csv("processed_data/t100_avgd_reg.csv",sep="\t")  
     #remove entries below daily frequency cuttoff
     t100_avgd_clip = t100_avgd[t100_avgd['DAILY_FREQ']>=freq_cuttoff]
     #group and rank carriers within markets
@@ -198,7 +198,7 @@ NOTE: Ftable creation requires hand association of SHORT NAME and MODEL categori
 function to get fleets available to each carrier by comparing time ratios in and out of network and comparing to full inventory size
 use_lower_F_bound: if true, use frequency rather than airtime to determine fleet size
 '''
-def Ftable_new(output_fn="processed_data/fleet_lookup.csv", use_lower_F_bound=True, full_t00_fn="bts_data/t100_seg_all.csv", ac_type_fn ="bts_data/AIRCRAFT_TYPE_LOOKUP.csv",t100summed_fn="processed_data/t100_summed.csv",market_table_fn= "processed_data/nonstop_competitive_markets.csv",b43_fn = "bts_data/SCHEDULE_B43.csv"):
+def Ftable_new(output_fn="processed_data/fleet_lookup_reg.csv", include_regional_carriers=True, use_lower_F_bound=True, full_t00_fn="bts_data/t100_seg_all.csv", ac_type_fn ="bts_data/AIRCRAFT_TYPE_LOOKUP.csv",t100summed_fn="processed_data/t100_summed_reg.csv",market_table_fn= "processed_data/nonstop_competitive_markets_reg.csv",b43_fn = "bts_data/SCHEDULE_B43.csv"):
     #load domestic and international T100 records
     t100_all = pd.read_csv(full_t00_fn)
     #load inventory and aircraft data
@@ -224,11 +224,13 @@ def Ftable_new(output_fn="processed_data/fleet_lookup.csv", use_lower_F_bound=Tr
     reduced_type = type1.set_index('AC_TYPEID').loc[keys].reset_index()[['AC_TYPEID','SHORT_NAME']] #first, filter type type list by relevant aircraft types
         #apparently corresponding model (constructed by hand from examination of SHORT_NAME from Aircraft Type Table and Model fromschedule B43
     #models with regional carrier
-    ##model =[['SF-340/A'],['EMB-120'],['DASH8-Q4'],['DASH8-1'],['DHC8-200'],['B737-7','B737-7/L'],['B737-8'],['B737-5'],['B737-4'],['B737-3'],['B757-2'],['B767-2'],['B767-3'],['B777-2'],['CRJ-2/4'],['RJ-700'],['B737-9'],['CRJ-900'],['A318'],['MD-80'],['MD-90'],['EMB-135'],['EMB-145'],['EMB-140'],['A320-1/2'],['A319'],['A321']]    
-    model = [['B737-7','B737-7/L'],['B737-8'],['B737-5'],['B737-4'],['B737-3'],['B757-2'],['B767-3'],['B777-2'],['B737-9'],['MD-80'],['A320-1/2'],['A319'],['A321']]    
+    if include_regional_carriers:
+        model =[['SF-340/A'],['EMB-120'],['DASH8-Q4'],['DASH8-1'],['DHC8-200'],['B737-7','B737-7/L'],['B737-8'],['B737-5'],['B737-4'],['B737-3'],['B757-2'],['B767-2'],['B767-3'],['B777-2'],['CRJ-2/4'],['RJ-700'],['B737-9'],['CRJ-900'],['A318'],['MD-80'],['MD-90'],['EMB-135'],['EMB-145'],['EMB-140'],['A320-1/2'],['A319'],['A321']]    
+    else:        
+        model = [['B737-7','B737-7/L'],['B737-8'],['B737-5'],['B737-4'],['B737-3'],['B757-2'],['B767-3'],['B777-2'],['B737-9'],['MD-80'],['A320-1/2'],['A319'],['A321']]    
     reduced_type['model']=pd.DataFrame({'model':model})
     reduced_type=reduced_type.set_index('AC_TYPEID')
-    reduced_type.to_csv('processed_data/model_lookup.csv')
+    reduced_type.to_csv('processed_data/model_lookup_reg.csv')
     #average freqs for market-carrier-ac_Tye
     freqs_across_markets_carrier_ac_type = t100_summed[['UNIQUE_CARRIER','BI_MARKET','DAILY_FREQ','AIRCRAFT_TYPE']].groupby(['UNIQUE_CARRIER','BI_MARKET','AIRCRAFT_TYPE']).aggregate(np.mean).reset_index().groupby(['UNIQUE_CARRIER','AIRCRAFT_TYPE'])
     # construct F tabke
@@ -280,7 +282,7 @@ def Ftable_new(output_fn="processed_data/fleet_lookup.csv", use_lower_F_bound=Tr
 
 
 #divide fleets up by market type (1,2,or 3 player) (make sure things sum to intermarket values)  
-def Ftable_MarketDiv(output_fn="processed_data/fleet_lookup_marketdiv.csv", use_lower_F_bound=True, full_t00_fn="bts_data/t100_seg_all.csv", ac_type_fn ="bts_data/AIRCRAFT_TYPE_LOOKUP.csv",t100summed_fn="processed_data/t100_summed.csv",market_table_fn= "processed_data/nonstop_competitive_markets.csv",b43_fn = "bts_data/SCHEDULE_B43.csv"):
+def Ftable_MarketDiv(output_fn="processed_data/fleet_lookup_reg_marketdiv.csv", include_regional_carriers=True,use_lower_F_bound=True, full_t00_fn="bts_data/t100_seg_all.csv", ac_type_fn ="bts_data/AIRCRAFT_TYPE_LOOKUP.csv",t100summed_fn="processed_data/t100_summed_reg.csv",market_table_fn= "processed_data/nonstop_competitive_markets_reg.csv",b43_fn = "bts_data/SCHEDULE_B43.csv"):
     #load domestic and international T100 records
     t100_all = pd.read_csv(full_t00_fn)
     #load inventory and aircraft data
@@ -306,8 +308,10 @@ def Ftable_MarketDiv(output_fn="processed_data/fleet_lookup_marketdiv.csv", use_
     reduced_type = type1.set_index('AC_TYPEID').loc[keys].reset_index()[['AC_TYPEID','SHORT_NAME']] #first, filter type type list by relevant aircraft types
         #apparently corresponding model (constructed by hand from examination of SHORT_NAME from Aircraft Type Table and Model fromschedule B43
      #models with regional carrier
-    ##model =[['SF-340/A'],['EMB-120'],['DASH8-Q4'],['DASH8-1'],['DHC8-200'],['B737-7','B737-7/L'],['B737-8'],['B737-5'],['B737-4'],['B737-3'],['B757-2'],['B767-2'],['B767-3'],['B777-2'],['CRJ-2/4'],['RJ-700'],['B737-9'],['CRJ-900'],['A318'],['MD-80'],['MD-90'],['EMB-135'],['EMB-145'],['EMB-140'],['A320-1/2'],['A319'],['A321']]    
-    model = [['B737-7','B737-7/L'],['B737-8'],['B737-5'],['B737-4'],['B737-3'],['B757-2'],['B767-3'],['B777-2'],['B737-9'],['MD-80'],['A320-1/2'],['A319'],['A321']]    
+    if include_regional_carriers:
+        model =[['SF-340/A'],['EMB-120'],['DASH8-Q4'],['DASH8-1'],['DHC8-200'],['B737-7','B737-7/L'],['B737-8'],['B737-5'],['B737-4'],['B737-3'],['B757-2'],['B767-2'],['B767-3'],['B777-2'],['CRJ-2/4'],['RJ-700'],['B737-9'],['CRJ-900'],['A318'],['MD-80'],['MD-90'],['EMB-135'],['EMB-145'],['EMB-140'],['A320-1/2'],['A319'],['A321']]    
+    else:        
+        model = [['B737-7','B737-7/L'],['B737-8'],['B737-5'],['B737-4'],['B737-3'],['B757-2'],['B767-3'],['B777-2'],['B737-9'],['MD-80'],['A320-1/2'],['A319'],['A321']]    
     reduced_type['model']=pd.DataFrame({'model':model})
     reduced_type=reduced_type.set_index('AC_TYPEID')
     reduced_type.to_csv('processed_data/model_lookup.csv')
@@ -385,14 +389,14 @@ and to get a fleet composition for network for each carrier
 #UPDATE THIS FUNCTION TO BE FUNCTIONAL AGAIN TO EXPERIMENT WITH A DIFFERENT CONFIGURATION
 
 '''  
-def fleet_assign(output_fn="processed_data/fleetdist.csv", fleet_lookup_fn = "processed_data/fleet_lookup.csv",market_table_fn= "processed_data/nonstop_competitive_markets.csv"):
+def fleet_assign(output_fn="processed_data/fleetdist_reg.csv", fleet_lookup_fn = "processed_data/fleet_lookup_reg.csv",market_table_fn= "processed_data/nonstop_competitive_markets_reg.csv"):
     #load netowrk data file created by nonstop_market_profile function
     t100ranked = pd.read_csv(market_table_fn)
     #get carriers and markets under study
     markets =  t100ranked['BI_MARKET'].tolist()
     carriers = t100ranked['UNIQUE_CARRIER'].tolist()
     #load network data broken down by craft type
-    t100_summed= pd.read_csv('processed_data/t100_summed.csv')
+    t100_summed= pd.read_csv('processed_data/t100_summed_reg.csv')
     t100gb = t100_summed.groupby(['UNIQUE_CARRIER','BI_MARKET'])
     t100gb_carrier = t100_summed.groupby(['UNIQUE_CARRIER'])
     #load fleet data for relevant carriers on this network
@@ -451,7 +455,7 @@ def fleet_assign(output_fn="processed_data/fleetdist.csv", fleet_lookup_fn = "pr
     fleet_dist = pd.DataFrame(rows)     
     fleet_dist.to_csv(output_fn, sep=';')    
     airtime_merge=pd.concat(air_times)
-    airtime_merge.to_csv('processed_data/airtimes.csv')
+    airtime_merge.to_csv('processed_data/airtimes_reg.csv')
     return fleet_dist
 
 
@@ -466,8 +470,8 @@ DO THIS FOR UNSEGMENTED MARKETS AS WELL
 def aug_fleet_market_add():
     only_big_carriers=True
     carriers_of_interest = ['AS','UA','US','WN']
-    market_table_fn= "processed_data/nonstop_competitive_markets.csv"
-    fleet_dist_aug_fn='processed_data/fleet_dist_aug.csv'
+    market_table_fn= "processed_data/nonstop_competitive_markets_reg.csv"
+    fleet_dist_aug_fn='processed_data/fleet_dist_aug_reg.csv'
     aug_fleet = pd.read_csv(fleet_dist_aug_fn)
     if only_big_carriers:
         aug_fleet = aug_fleet[aug_fleet['carrier'].isin(carriers_of_interest)]
@@ -483,7 +487,7 @@ def aug_fleet_market_add():
         return new_types
     aug_fleet2=aug_fleet
     aug_fleet2['assigned_type']=aug_fleet2.apply(add_competitor_types,1)
-    aug_fleet2.to_csv('processed_data/aug_fleet_mktDiv.csv')
+    aug_fleet2.to_csv('processed_data/aug_fleet_mktDiv_reg.csv')
     return aug_fleet2
 '''
 function to compute proportion airtime of assigned craft or craft hybrids in each market within each carrier, and then compute "sub F" values broken down by segment from orignal F value 
@@ -515,7 +519,8 @@ function to create table of carrier and market data used by matlab myopic best r
 if use_adj_market is True, market sizes will be adjusted to account for nonstop passengers
 
 '''    
-def create_network_game_datatable(use_adj_market=False,t100ranked_fn = 'processed_data/nonstop_competitive_markets.csv', fleet_lookup_fn = "processed_data/fleet_lookup_marketdiv.csv",aotp_fn = 'bts_data/aotp_march.csv',fleet_dist_aug_fn='processed_data/aug_fleet_mktDiv.csv'):   
+
+def create_network_game_datatable(use_adj_market=True,t100ranked_fn = 'processed_data/nonstop_competitive_markets_mktmod_reg.csv', fleet_lookup_fn = "processed_data/fleet_lookup_reg.csv",aotp_fn = 'bts_data/aotp_march.csv',fleet_dist_aug_fn='processed_data/fleet_dist_aug_reg.csv'):   
     #read in data files     
     fleet_lookup= pd.read_csv(fleet_lookup_fn)
     aug_fleet = pd.read_csv(fleet_dist_aug_fn) 
@@ -527,7 +532,7 @@ def create_network_game_datatable(use_adj_market=False,t100ranked_fn = 'processe
     aotp_mar_times = aotp_mar[['UNIQUE_CARRIER','BI_MARKET','AIR_TIME']].groupby(['UNIQUE_CARRIER','BI_MARKET']).aggregate(lambda x: np.mean(x)/60)
     aotp_mar_times = aotp_mar_times.reset_index().groupby(['UNIQUE_CARRIER','BI_MARKET'])
     #create input file for MATLAB based myopic best response network game
-    with open('processed_data/carrier_data_mktDiv_noREG.txt','w') as outfile:       
+    with open('processed_data/carrier_data_mktMod_REG.txt','w') as outfile:       
         # group competitive markets table by market
         t100_gb_market = t100ranked.groupby('BI_MARKET')
         #get set of markets
@@ -600,7 +605,7 @@ def create_network_game_datatable(use_adj_market=False,t100ranked_fn = 'processe
                         a_row.append(0)                    
                 A_rows.append(a_row)
                 #sum F accross compents of hybrid carrier
-                F = sum([fleet_lookup.groupby(['carrier','aircraft_type']).get_group((carrier,subtype))['F'].iloc[0] for subtype in ac_type.split('-') ])
+                F = sum([fleet_lookup.groupby(['carrier','aircraft_type']).get_group((carrier,int(subtype)))['F'].iloc[0] for subtype in ac_type.split('-') ])
                 b_rows.append(18*F)
             #index of relevant markets doe rgia carrier 
             carrier_Markets = [markets_sorted.index(mk)+1 for mk in carrier_markets_str]
@@ -684,7 +689,7 @@ def create_network_game_datatable(use_adj_market=False,t100ranked_fn = 'processe
             outfile.write(row_string)
     #construct rowstring, using MATLAB vector notation for each componentf
     coef_df = pd.DataFrame(coefficient_table_rows)   
-    coef_df.to_csv('processed_data/transcoef_table_mktDiv_noREG.csv',sep=';')
+    coef_df.to_csv('processed_data/transcoef_table_mktMod_REG.csv',sep=';')
     return coef_df
     
     
@@ -993,13 +998,12 @@ function to read outpur files, analyze, calculate overall MAPE
 NEED FUNCTION TO READ EACH OUTPUT FILE, CALCULATE FULL MAPE, PUT INTO TABLE, USING FUNCTION ABOVE, WHICH WILL NEED TO BE MODIFIED TO HAVE OVERALL MAPE
 ADD OVERALL MAPE TO ABOVE FUNCTION SO THAT IT CAN BE USED IN A LOOP INSTEAD OF UGLY FUNCTION BELOW
 '''
-def experimental_results_table(input_base = "exp_results_basemod_WNmod_MktDiv",outfile_fn='experimental_table_basemod_WNmod_MktDiv.csv',t100ranked_fn = "nonstop_competitive_markets.csv"):
-    
+def experimental_results_table(IO_base = "mkMod_REG_",t100ranked_fn = "processed_data/nonstop_competitive_markets_mktmod_reg.csv"):    
     #resTABLE = pd.DataFrame(index=list(range(1,end_coef)),columns=[round(-.5+.1*i,1) for i in range(0,11)])    
-    resTABLE = pd.DataFrame(index=[2, 4, 6, 9, 11, 13, 15, 17, 19, 21, 22],columns=[round(-1.5+.1*j,1) for j in range(0,31)])
+    resTABLE = pd.DataFrame(index=[2, 4, 6, 9, 11, 13, 15, 17, 19, 21, 22],columns=[round(-1.5+.1*j,1) for j in range(0,36)])
     for i in [2, 4, 6, 9, 11, 13, 15, 17, 19, 21, 22]:#range(1,end_coef):        
-        for modification_factor in [round(-.5+.1*j,1) for j in range(0,11)]: #[round(-.5+.1*j,1) for j in range(0,11)]:#[round(-.5,1),round(-.2,1),round(.2,1),round(.5,1)]:#[round(-.5+.1*j,1) for j in range(0,11)]:
-            input_fn = "matlab_2stagegames/" + input_base + "%s_%s.txt" % (i,modification_factor)
+        for modification_factor in [round(-1.5+.1*j,1) for j in range(0,36)]: #[round(-.5+.1*j,1) for j in range(0,11)]:#[round(-.5,1),round(-.2,1),round(.2,1),round(.5,1)]:#[round(-.5+.1*j,1) for j in range(0,11)]:
+            input_fn = "exp_files/exp_results_" + IO_base + "%s_%s.txt" % (i,modification_factor)
             try:                
                 #read in original market profile file    
                 t100ranked  = pd.read_csv(t100ranked_fn) 
@@ -1050,7 +1054,7 @@ def experimental_results_table(input_base = "exp_results_basemod_WNmod_MktDiv",o
                 network_results['CR_MAPE'] = crmape_column
                 #resort dataframe and save to file
                 network_results = network_results.sort(columns=['BI_MARKET','MARKET_RANK']) 
-                network_results.to_csv('net_results_basemod_WNmod_MktDiv%s_%s.txt' % (i,modification_factor))
+                network_results.to_csv('exp_files/net_results_' + IO_base + '%s_%s.txt' % (i,modification_factor))
                 #calculate overall MAPE                       
                 reduced_net = network_results.set_index('UNIQUE_CARRIER').loc[['AS','UA','US','WN']] 
                 fs = reduced_net['DAILY_FREQ'].tolist()
@@ -1068,7 +1072,7 @@ def experimental_results_table(input_base = "exp_results_basemod_WNmod_MktDiv",o
                 resTABLE.loc[i,modification_factor]=str(overall_MAPE) + ';'+';'.join([str(mp) for mp in market_mapes])
             except OSError:
                 print(input_fn)
-    resTABLE.to_csv(outfile_fn)#'exp_results_table.csv')
+    resTABLE.to_csv("exp_files/experimental_table_" + IO_base +".csv")#'exp_results_table.csv')
     return resTABLE
     
 def experiment_categories_2(row):    
@@ -1359,14 +1363,14 @@ def create_basemod_experiments(t100ranked_fn = "processed_data/nonstop_competiti
 
     
 #create experimental carrier files with new F and premodified base    
-def create_exp_files_modbase():  
+def create_exp_files_modbase(use_adj_market=True):  
     carriers_to_modify = ['AS','UA','US','WN'] #select subset of carriers whose coefficients will be modifed #['WN']
-    coef_df = pd.read_csv('processed_data/transcoef_table_mktDiv_noREG.csv',sep=';')
+    coef_df = pd.read_csv('processed_data/transcoef_table_mktMod_REG.csv',sep=';')
     #coef_df is in order of carriers/coefficient vectors used to create file already
     coef_df['category'] = coef_df.apply(experiment_categories_1,1)        
     #category_inds = [list(range(1,8)),list(range(1,7)),list(range(1,7)),list(range(1,4))]
 
-    t100ranked_fn = "processed_data/nonstop_competitive_markets.csv"
+    t100ranked_fn = "processed_data/nonstop_competitive_markets_mktmod_reg.csv"##"processed_data/nonstop_competitive_markets.csv"
     t100ranked = pd.read_csv(t100ranked_fn)
     t100ranked_gb = t100ranked.groupby(['BI_MARKET','UNIQUE_CARRIER'])
     '''
@@ -1386,9 +1390,9 @@ def create_exp_files_modbase():
     coef_cats ={1:[2,4,6],2:[9,11,13],3:[15,17,19],4:[21,22]}
     for coef_ind in [2, 4, 6, 9, 11, 13, 15, 17, 19, 21, 22]:#which coefficient to modify            
         #how much to modify it by
-        for modification_factor in [round(-1.5+.1*j,1) for j in range(0,31)]:   
+        for modification_factor in [round(-1.5+.1*j,1) for j in range(0,36)]:   
             #read from base file, write to new outfile
-            with open('processed_data/carrier_data_mktDiv_noREG.txt','r') as basefile, open('exp_files/carrier_data_basemod_mktDiv_noREG_%s_%s.txt' % (str(coef_ind),str(modification_factor)),'w') as outfile:
+            with open('processed_data/carrier_data_mktMod_REG.txt','r') as basefile, open('exp_files/carrier_data_basemod_mktMod_REG_%s_%s.txt' % (str(coef_ind),str(modification_factor)),'w') as outfile:
                 file_ind+=1 #increment file index
                 if file_ind % 50 == 0 :
                     print("FILE %s" % file_ind)
@@ -1410,8 +1414,11 @@ def create_exp_files_modbase():
                                 Cold = 10000
                                 Cnew = float(coef_record['FLIGHT_COST'])
                                 #old and new market sizes
-                                Mold = 1000
-                                Mnew = float(coef_record['MARKET_TOT'])
+                                Mold = 1000                                
+                                if use_adj_market:
+                                    Mnew = float(coef_record['new_market'])
+                                else:
+                                    Mnew = float(coef_record['MARKET_TOT'])
                                 #frequency index of carrier in market to determine order of coefficients
                                 freq_ind = int(coef_record['MARKET_RANK'])
                                 if coef_row['competitors']==1:                                            
@@ -1572,7 +1579,7 @@ def create_exp_files_modmkt():
 
 
 def get_market_connection_modifiers():
-    market_table_fn= "nonstop_competitive_markets.csv"
+    market_table_fn= "processed_data/nonstop_competitive_markets_reg.csv"
     t100ranked = pd.read_csv(market_table_fn)   
     t100ranked['CARRIER_MARKET'] = t100ranked.apply(lambda row: row['UNIQUE_CARRIER'] + '_' + row['BI_MARKET'],1)
     t100ranked['connection_demands'] = np.zeros((t100ranked.shape[0],1))
@@ -1582,7 +1589,7 @@ def get_market_connection_modifiers():
     total_numbers={mkt:0 for mkt in markets_sorted}
     ###carriers_sorted = sorted(list(set(t100ranked['UNIQUE_CARRIER'].tolist())))
     market_dict={mkt: list(set(t100ranked.groupby('BI_MARKET').get_group(mkt)['UNIQUE_CARRIER'].tolist()).intersection(['AS','UA','US','WN'])) for mkt in markets_sorted}
-    route_demands = pd.read_csv('route_demand_Q1.csv')
+    route_demands = pd.read_csv('bts_data/route_demand_Q1.csv')
     def create_market(row):
         market = [row['ORIGIN'], row['DESTINATION']]
         market.sort()
@@ -1614,7 +1621,7 @@ def get_market_connection_modifiers():
             mkt_adj = row['MARKET_TOT']
         return pd.Series({'adj_ratio': ratio, 'new_market': mkt_adj})
     t100ranked[['adj_ratio','new_market']]=t100ranked.apply(market_adjust,1)
-    t100ranked.reset_index().to_csv('processed_data/mkt_ratios.csv')
+    t100ranked.reset_index().to_csv('processed_data/nonstop_competitive_markets_mktmod_reg.csv')
     return t100ranked
         
             
