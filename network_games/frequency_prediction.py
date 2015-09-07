@@ -777,11 +777,45 @@ def experiment_categories_WN(row):
             
             
             
-   
+   #create datamat to be run with SPSA
+def create_SPSA_datamat(t100ranked_fn = "processed_data/nonstop_competitive_markets_mktmod_reg1.csv",outfile_fn = "processed_data/SPSAdatamat_mktmod_reg1.csv"):             
+     t100ranked = pd.read_csv(t100ranked_fn)
+     
+     data_mat = t100ranked
+     data_mat['category']=data_mat.apply(experiment_categories_2,1)
+     def cat_start_end(row):
+         if row['category']==1:
+             return pd.Series({'basestart':1,'baseend':10})
+         elif row['category']==2:
+             return pd.Series({'basestart':11,'baseend':16})
+         elif row['category']==3:
+             return pd.Series({'basestart':17,'baseend':22})
+         elif row['category']==4:
+             return pd.Series({'basestart':23,'baseend':25})
+     data_mat[['baseend','basestart']]=data_mat.apply(cat_start_end,1).sort(axis=1) #????? WHAT
+     def transcoef_ind(gb):
+         gb = gb.sort('BI_MARKET',axis=0)
+         rows=[]
+         start_index = 1
+         for row in gb.to_dict('records'):
+             if row['MARKET_COMPETITORS']==3:
+                 end_index = start_index + 10 -1
+             elif row['MARKET_COMPETITORS']==2:
+                 end_index = start_index + 6 -1
+             elif row['MARKET_COMPETITORS']==1:
+                 end_index = start_index + 3 -1
+             else:
+                 raise('Error!')
              
-
-    
-    
+             row['transstart']=start_index
+             row['transend']=end_index
+             start_index = end_index + 1
+             rows.append(row)         
+         return pd.DataFrame(rows)     
+     data_mat=data_mat.groupby('UNIQUE_CARRIER').apply(transcoef_ind)
+     t100ranked_sort = data_mat.sort(['UNIQUE_CARRIER','BI_MARKET'],axis=0)[['MARKET_COMPETITORS','MARKET_RANK','new_market','FLIGHT_COST','basestart','baseend','transstart','transend']]
+     t100ranked_sort.to_csv(outfile_fn)
+     return t100ranked_sort
     
     
 
@@ -914,7 +948,7 @@ def create_exp_files_modbase(use_adj_market=True):
 '''
 function to build easily read data table from MATLAB output
 '''
-def create_results_table(outfile_fn='network_table_mktDiv_newM.csv',input_fn = "matlab_2stagegames/network_results_mktDiv_newM.csv",t100ranked_fn = "nonstop_competitive_markets.csv"):
+def create_results_table(outfile_fn='exp_files/SPSA_results_table.csv',input_fn = "exp_files/SPSA_results.csv",t100ranked_fn = "processed_data/nonstop_competitive_markets_mktmod_reg1.csv"):
     #read in original market profile file    
     t100ranked  = pd.read_csv(t100ranked_fn) 
     #use subset of this as base for results table
@@ -980,6 +1014,7 @@ ADD OVERALL MAPE TO ABOVE FUNCTION SO THAT IT CAN BE USED IN A LOOP INSTEAD OF U
 def experimental_results_table(IO_base = "mkMod_REG_",t100ranked_fn = "processed_data/nonstop_competitive_markets_mktmod_reg.csv"):    
     #resTABLE = pd.DataFrame(index=list(range(1,end_coef)),columns=[round(-.5+.1*i,1) for i in range(0,11)])    
     resTABLE = pd.DataFrame(index=[2, 4, 6, 9, 11, 13, 15, 17, 19, 21, 22],columns=[round(-1.5+.1*j,1) for j in range(0,36)])
+    RresTABLE = pd.DataFrame(index=[2, 4, 6, 9, 11, 13, 15, 17, 19, 21, 22],columns=[round(-1.5+.1*j,1) for j in range(0,36)])
     for i in [2, 4, 6, 9, 11, 13, 15, 17, 19, 21, 22]:#range(1,end_coef):        
         for modification_factor in [round(-1.5+.1*j,1) for j in range(0,36)]: #[round(-.5+.1*j,1) for j in range(0,11)]:#[round(-.5,1),round(-.2,1),round(.2,1),round(.5,1)]:#[round(-.5+.1*j,1) for j in range(0,11)]:
             input_fn = "exp_files/exp_results_" + IO_base + "%s_%s.txt" % (i,modification_factor)
@@ -1039,19 +1074,25 @@ def experimental_results_table(IO_base = "mkMod_REG_",t100ranked_fn = "processed
                 fs = reduced_net['DAILY_FREQ'].tolist()
                 f_hats = reduced_net['EST_FREQ'].tolist()
                 overall_MAPE = sum([abs(f_hat-f) for f_hat,f in zip(f_hats,fs)])/sum(fs) 
+                ##R2 = 1-sum((fs-true_fs).^2,2)./sum((true_fs-repmat(mean(true_fs,2),1,markets)).^2,2);
+                overallR2 =1- sum([(f_hat-f)**2 for f_hat,f in zip(f_hats,fs)])/sum([(f-sum(fs)/len(fs))**2 for f_hat,f in zip(f_hats,fs)]) 
                 #calculate in market mape
                 market_mapes = []
+                market_Rs = []
                 for mkt_size in range(1,4):
                     reduced_net_sub = reduced_net.reset_index().set_index('MARKET_COMPETITORS').loc[mkt_size]
                     fs = reduced_net_sub['DAILY_FREQ'].tolist()
                     f_hats = reduced_net_sub['EST_FREQ'].tolist()
                     mkt_mape = sum([abs(f_hat-f) for f_hat,f in zip(f_hats,fs)])/sum(fs)
                     market_mapes.append(mkt_mape)
-                
+                    mkt_R =1- sum([(f_hat-f)**2 for f_hat,f in zip(f_hats,fs)])/sum([(f-sum(fs)/len(fs))**2 for f_hat,f in zip(f_hats,fs)])
+                    market_Rs.append(mkt_R)
                 resTABLE.loc[i,modification_factor]=str(overall_MAPE) + ';'+';'.join([str(mp) for mp in market_mapes])
+                RresTABLE.loc[i,modification_factor]=str(overallR2) + ';'+';'.join([str(R) for R in market_Rs])
             except OSError:
                 print(input_fn)
     resTABLE.to_csv("exp_files/experimental_table_" + IO_base +".csv")#'exp_results_table.csv')
+    RresTABLE.to_csv("exp_files/experimental_table_R2_" + IO_base +".csv")
     return resTABLE
     
     
@@ -1068,7 +1109,7 @@ def experiment_categories_2(row):
     #first check if 3 player, assign to category
     if int(row['MARKET_COMPETITORS']) ==3:
         cat = 1
-    elif row['UNIQUE_CARRIER']+'_' +row['BI_MARKET'] in hub_groups:
+    elif row['UNIQUE_CARRIER']+'_' +row['BI_MARKET'] in hub_groups and int(row['MARKET_COMPETITORS']) ==2:
         cat = 2
     elif int(row['MARKET_COMPETITORS']) ==1:
         cat = 4

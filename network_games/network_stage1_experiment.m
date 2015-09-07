@@ -458,7 +458,7 @@ for name_ind = 1:6
                         %set up profit function for this carrier
                         profit_func=@(f_i)profit_stage1_network(f_i,carrier.coef, carrier.freq_inds,carrier.Markets,current_markets);
                         %optimize frequencies of this carrier for profit
-                        if (carrier_ind==4)
+                        if (carrier_ind==8)
                             lower_bound = zeros(numel(carrier.Markets),1);
                             lower_bound(1) = 13.54;
                             upper_bound = ones(numel(carrier.Markets),1)*inf;
@@ -529,20 +529,3 @@ end
 toc
 display('PART3 DONE')
     
-a=1.9;
-c=20;
-A=100;
-alpha=.602;
-gamma=.101;
-for k=0:n-1
-    ak=a/(k+1+A)^alpha;
-    ck=c/(k+1)^gamma;
-    delta=2*round(rand(p,1))-1;
-    thetaplus=theta+ck*delta;
-    thetaminus=theta-ck*delta;
-    yplus=loss(thetaplus);
-    yminus=loss(thetaminus);
-    ghat=(yplus-yminus)./(2*ck*delta);
-    theta=theta-ak*ghat;
-end
-theta
