@@ -18,8 +18,8 @@
 %record old and new coefficients, and make sure to send new frequency
 %PROBABLY NEED OTHER GENERAL SCENARIO INFORMATION MINED FROM FILE NOT IN
 %CARRIER DATA STRUCTURE
-function loss = network_game_loss(theta,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,file_write,MAPE_incl)
-
+function loss = network_game_loss(theta,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,file_write,MAPE_incl,outfile_fn)
+    MAPE_incl(1)=0;
     %%%PART I: use new theta values to recompute profit function
     %%%coefficient for all carriers
 
@@ -210,7 +210,7 @@ function loss = network_game_loss(theta,theta_norm,coef_map,base_coef,loss_metri
             end
             row_ind = row_ind+segment_competitors(mk);
         end       
-        dlmwrite('exp_files/SPSA_results.csv',freq_results_mat,'delimiter',',','precision','%.4f')
+        dlmwrite(outfile_fn,freq_results_mat,'delimiter',',','precision','%.4f')
         %calculate loss metric chosen
         freq_results_mat = zeros(sum(segment_competitors),3);
         %row index

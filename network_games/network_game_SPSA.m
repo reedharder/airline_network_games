@@ -2,10 +2,11 @@
 
 %%%PART I: Load scenario carrier and market data
 tic
-n=100;
+n=1000;
 cd('C:/Users/d29905p/documents/airline_competition_paper/code/network_games')
 market_data_mat = csvread('processed_data/SPSAdatamat_mktmod_reg1.csv',1,2);
-fn_open = strcat('exp_files/carrier_data_basemod_mktDiv_reg1_2_0.0.txt');
+fn_open = strcat('exp_files/carrier_data_basemod_reg1_2_0.0.txt');
+outfile_fn = 'exp_files/SPSA_results_fulleq.csv';
 fid = fopen(fn_open,'r');
 %carrier fixing 
             %['AA','AS','MQ','OO','QX','UA','US','WN']
@@ -92,9 +93,12 @@ end
     
     
 %set optimization parameters
-a=1.9;
-c=20;
-A=100;
+
+%a=1.9;
+a=50000; %a=100000;
+c=70;
+%c=20;
+A=100; %A=100;
 alpha=.602;
 gamma=.101;
 
@@ -123,21 +127,83 @@ fixed_markets = {[],[],[],[],[],[],[],[1]}; %currently, only LAS_LAX
 %LOAD THE MARKETS DATA FILEEEEEEEEE
 %run SPSA
 ys = zeros(2,n);
-for k=0:n-1
-    ak=a/(k+1+A)^alpha;
+best_theta = zeros(numel(theta),1);
+best_loss = 1;
+%for k=0:n-1
+ys = zeros(2,2300);
+for k=1300:2300
+    ak=(a/(k+1+A)^alpha)*diag([100,1,1,100,1,1,100,1,1,100,10]);
     ck=c/(k+1)^gamma;
     delta=2*round(rand(p,1))-1;
     thetaplus=theta+ck*delta;
     thetaminus=theta-ck*delta;
-    yplus= network_game_loss(thetaplus,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,0,MAPE_incl);
-    yminus=network_game_loss(thetaminus,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,0,MAPE_incl);
+    yplus= network_game_loss(thetaplus,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,0,MAPE_incl,outfile_fn);
+    yminus=network_game_loss(thetaminus,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,0,MAPE_incl,outfile_fn);
     ys(1,k+1)=yplus;
     ys(2,k+1)=yminus;
     ghat=(yplus-yminus)./(2*ck*delta);
-    theta=theta-ak*ghat;
+    theta=theta-ak*ghat;    
     display(k)
+    display(yminus)
+    display(yplus)
+    if (yminus < best_loss)
+        best_loss = yminus;
+        best_theta = thetaminus;
+    end
+    if (yplus < best_loss)
+        best_loss = yplus;
+        best_theta = thetaplus;
+    end
+    
 end
 toc
-final_loss=network_game_loss(theta,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,1,MAPE_incl);
+final_loss=network_game_loss(theta,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,1,MAPE_incl,outfile_fn);
 toc
 
+%ghat=(ys(1,1)-ys(2,1))./(2*ck*delta);
+Th  = zeros(11,2*11);
+old_yy = yy;
+oldish_yy = yy;
+yy=zeros(1,2*11);
+ind = 1;
+for i=1:11
+    for j=1:2
+        if (j==1)
+            theta_v = new_newbest;
+            theta_v(i)= theta_v(i)+theta_v(i)*.01;
+            y= network_game_loss(theta_v,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,0,MAPE_incl,outfile_fn);
+            yy(ind)=y;
+            ind=ind+1;
+            display(ind)
+        else
+            theta_v = new_newbest;
+            theta_v(i) = theta_v(i)-.01*theta_v(i);
+            y= network_game_loss(theta_v,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,0,MAPE_incl,outfile_fn);
+            yy(ind)=y;
+            ind=ind+1;
+            display(ind)
+        end
+    end
+end
+theta_v = best_theta;
+theta_v(7) = theta_v(7)-.05*theta_v(7);
+y= network_game_loss(theta_v,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,0,MAPE_incl,outfile_fn);
+new_btheta = theta_v;
+
+
+theta_v = new_btheta;
+%theta_v(2) = theta_v(2)+.01*theta_v(4);
+%theta_v(4) = theta_v(4)+.01*theta_v(4);
+%theta_v(5) = theta_v(5)-.01*theta_v(5);
+theta_v(8) = theta_v(8)-.05*theta_v(8);
+theta_v(10) = theta_v(10)+.03*theta_v(10);
+%theta_v(4) = theta_v(4)+.02*theta_v(4);
+y= network_game_loss(theta_v,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,0,MAPE_incl,outfile_fn);
+new_newbest=theta_v;
+
+
+
+
+theta_v=new_newbest;
+theta_v(7) = theta_v(7)-.03*theta_v(7);
+y= network_game_loss(theta_v,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,0,MAPE_incl,outfile_fn);
