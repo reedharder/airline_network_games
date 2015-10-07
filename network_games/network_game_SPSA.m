@@ -2,11 +2,12 @@
 
 %%%PART I: Load scenario carrier and market data
 tic
-n=1000;
+n=1500;
 cd('C:/Users/d29905p/documents/airline_competition_paper/code/network_games')
-market_data_mat = csvread('processed_data/SPSAdatamat_mktmod_reg1.csv',1,2);
-fn_open = strcat('exp_files/carrier_data_basemod_reg1_2_0.0.txt');
-outfile_fn = 'exp_files/SPSA_results_fulleq.csv';
+market_data_mat = csvread('processed_data/SPSAdatamat_mktmod_reg1_q1.csv',1,2);
+%fn_open = strcat('exp_files/carrier_data_basemod_reg1_2_0.0.txt');
+fn_open = strcat('processed_data/carrier_data_reg1_q1.txt');
+outfile_fn = 'exp_files/SPSA_results_fulleq_MAPE_r1_q1.csv';
 fid = fopen(fn_open,'r');
 %carrier fixing 
             %['AA','AS','MQ','OO','QX','UA','US','WN']
@@ -130,8 +131,8 @@ ys = zeros(2,n);
 best_theta = zeros(numel(theta),1);
 best_loss = 1;
 %for k=0:n-1
-ys = zeros(2,2300);
-for k=1300:2300
+ys = zeros(2,4000);
+for k=1:n-1
     ak=(a/(k+1+A)^alpha)*diag([100,1,1,100,1,1,100,1,1,100,10]);
     ck=c/(k+1)^gamma;
     delta=2*round(rand(p,1))-1;
@@ -160,6 +161,18 @@ toc
 final_loss=network_game_loss(theta,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,1,MAPE_incl,outfile_fn);
 toc
 
+
+M  = zeros(30);
+u = 3:60;
+for i=1:30
+    for j = 1:30
+        M(i,j) = u(i)*46.454 + u(j);
+    end
+end
+
+
+
+%%%%% EXTRA PROCESSING
 %ghat=(ys(1,1)-ys(2,1))./(2*ck*delta);
 Th  = zeros(11,2*11);
 old_yy = yy;
