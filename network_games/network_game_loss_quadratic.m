@@ -18,12 +18,10 @@
 %record old and new coefficients, and make sure to send new frequency
 %PROBABLY NEED OTHER GENERAL SCENARIO INFORMATION MINED FROM FILE NOT IN
 %CARRIER DATA STRUCTURE
-function loss = network_game_loss(theta,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,file_write,MAPE_incl,outfile_fn)
-    MAPE_incl(1)=0; %WN LAS_LAX
-    MAPE_incl(8)=0; %US LAS_PDX
-    MAPE_incl(9)=0; %WN LAS_PHX
-    MAPE_incl(22)=0; %WN LAX_OAK
-    MAPE_incl(44)=0; %WN OAK_SAN
+function loss = network_game_loss_quadratic(theta,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,file_write,MAPE_incl,outfile_fn)
+    MAPE_incl(1)=0;
+    % 3 player interaction leave-out index mapping
+    remove_interaction = [3,2,1];
     %%%PART I: use new theta values to recompute profit function
     %%%coefficient for all carriers
 
@@ -130,15 +128,13 @@ function loss = network_game_loss(theta,theta_norm,coef_map,base_coef,loss_metri
     %%%PART II: run network game using carrier data modified above and
     %%%return frequency estimates
     %set best response and optimization parameters 
-    eps=0.01;
+    eps=0.1;
     diffs = ones(num_carriers,1) +eps;
     options = optimset('Display', 'off') ;
     
     %myopic best response: each carrier decides frequencies for all the
     %segments that it is competing on
     loop=1;
-    %track convergence
-    %diffs_full = zeros(1,num_carriers);
     while (sum(diffs(fixed_carrier == 0)>eps)>0) %loop until converges (just for non fixed diff indices)
         for carrier_ind=1:num_carriers
             %if carrier is not fixed, run optimization             
@@ -146,34 +142,60 @@ function loss = network_game_loss(theta,theta_norm,coef_map,base_coef,loss_metri
                 carrier = carriers{carrier_ind};
                 %current frequencies of carrier on all of its market segments
                 current_markets = Market_freqs(carrier.Markets);
-                f_i = zeros(numel(carrier.Markets),1);
+                
                 %loop through markets, get frequency of carrier at these markets
+                %for each market, get linear coefficients and quadratic
+                %coefficients
+                quad_terms = zeros(numel(carrier.Markets),1);
+                lin_terms = zeros(numel(carrier.Markets),1);
+                coef_vector_index = 1;
                 for i=1:numel(carrier.Markets)
-                    current_market_freqs = current_markets{i};
-                    %get frequency of current carrier corresponding to current
-                    %market
-                    f_i(i) = current_market_freqs(carrier.freq_inds(i));      
+                    freq_ind = carrier.freq_inds(i); 
+                    current_mkt_freqs = current_markets{i};
+                    num_players = numel(current_mkt_freqs);                    
+                    if (num_players)==1
+                        num_coefs = 3;
+                        current_coefs = carrier.coef(coef_vector_index:(coef_vector_index + num_coefs - 1));
+                        lin_terms(i) = current_coefs(2);
+                        quad_terms(i) = current_coefs(3);
+                    elseif (num_players)==2
+                        num_coefs = 6;
+                        current_coefs = carrier.coef(coef_vector_index:(coef_vector_index + num_coefs - 1));
+                        %to create linear coefficient, set freq of current
+                        %carrier in current market to 1
+                        current_market_freqs(freq_ind) = 1;
+                        lin_terms(i) = current_coefs(1+freq_ind) + coef(6)*prod(current_market_freqs);
+                        quad_terms(i) = current_coefs(3 + freq_ind);
+                    else
+                        num_coefs = 10;
+                        current_coefs = carrier.coef(coef_vector_index:(coef_vector_index + num_coefs - 1));
+                        current_market_freqs(freq_ind) = 1;
+                        %interaction coefficients
+                        int_coefs  = current_coefs(8:10);
+                        int_coefs(remove_interaction(freq_ind)) = 0;                        
+                        lin_terms(i) = current_coefs(1+freq_ind) + int_coefs(1)*current_market_freqs(1)*current_market_freqs(2) + int_coefs(2)*current_market_freqs(1)*current_market_freqs(3) + int_coefs(3)*current_market_freqs(2)*current_market_freqs(3);
+                        quad_terms(i) = current_coefs(4 + freq_ind);
+                    end                          
+                    coef_vector_index = coef_vector_index + num_coefs;         
+                   
                 end
-
-                %set up profit function for this carrier
-                profit_func=@(f_i)profit_stage1_network(f_i,carrier.coef, carrier.freq_inds,carrier.Markets,current_markets);
+                %construct Hessian matrix
+                H = diag(2*quad_terms);
+             
                 %optimize frequencies of this carrier for profit
                 if any(fixed_market_carriers==carrier_ind)
                     %fix relevant markets for this carrier if applicable      
                     fixed_freqs = carrier.emp_freqs(fixed_markets{carrier_ind});
-                    lower_bound = ones(numel(carrier.Markets),1)*2;
+                    lower_bound = ones(numel(carrier.Markets),1)*.5;
                     lower_bound(fixed_markets{carrier_ind}) = fixed_freqs;
                     upper_bound = ones(numel(carrier.Markets),1)*inf;
                     upper_bound(fixed_markets{carrier_ind}) = fixed_freqs;
-                    [x_i, profit]=fmincon(profit_func,f_i,carrier.A,carrier.b,[],[],lower_bound,upper_bound,[],options);
+                    x_i = quadprog(H,lin_terms,carrier.A,carrier.b,[],[],lower_bound,upper_bound,[],options);
                 else
-                    [x_i, profit]=fmincon(profit_func,f_i,carrier.A,carrier.b,[],[],ones(numel(carrier.Markets),1)*2,ones(numel(carrier.Markets),1)*inf,[],options);
-                end  
-               
+                    x_i = quadprog(H,lin_terms,carrier.A,carrier.b,[],[],zeros(numel(carrier.Markets),1),ones(numel(carrier.Markets),1)*inf,[],options);
+                end                
                 %check for convergence
                 diffs(carrier_ind)=sum(abs(f_i-x_i));
-                diffs_full(loop,:)=diffs;
-                
                 %set new optimal frequencies into market frequencies data structure
                 for i=1:numel(carrier.Markets)
                     %frequency in market i 
@@ -192,15 +214,11 @@ function loss = network_game_loss(theta,theta_norm,coef_map,base_coef,loss_metri
                 carrier.profits = profit;
             end
         end
-        
         %display loop number and time
         %%%display(loop)
         loop =  loop +1;
-       
         %%%toc
     end
-    %%diffs_full = diffs_full(:,fixed_carrier == 0);
-    
     %final frequencies will be contained in Market freqs and carrier.freqs
     %(organized by market and carrier, respectively)
     %corresponding profits are in carrier.profits
