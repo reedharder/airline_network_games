@@ -2,7 +2,7 @@
 
 %%%PART I: Load scenario carrier and market data
 tic
-n=2000;
+n=1000;
 cd('C:/Users/d29905p/documents/airline_competition_paper/code/network_games')
 market_data_mat = csvread('processed_data/SPSAdatamat_mktmod_reg1_q1.csv',1,2);
 %fn_open = strcat('exp_files/carrier_data_basemod_reg1_2_0.0.txt');
@@ -96,8 +96,8 @@ end
 %set optimization parameters
 
 %a=1.9;
-a=600; %a=100000;
-c=5;
+a=100000; %a=600; %
+c=20;
 %c=20;
 A=100; %A=100;
 alpha=.602;

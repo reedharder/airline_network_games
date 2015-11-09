@@ -167,7 +167,9 @@ function loss = network_game_loss(theta,theta_norm,coef_map,base_coef,loss_metri
                     upper_bound(fixed_markets{carrier_ind}) = fixed_freqs;
                     [x_i, profit]=fmincon(profit_func,f_i,carrier.A,carrier.b,[],[],lower_bound,upper_bound,[],options);
                 else
+                    tic
                     [x_i, profit]=fmincon(profit_func,f_i,carrier.A,carrier.b,[],[],ones(numel(carrier.Markets),1)*2,ones(numel(carrier.Markets),1)*inf,[],options);
+                    toc
                 end  
                
                 %check for convergence

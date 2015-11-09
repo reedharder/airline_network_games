@@ -139,36 +139,45 @@ function loss = network_game_loss_quadratic(theta,theta_norm,coef_map,base_coef,
         for carrier_ind=1:num_carriers
             %if carrier is not fixed, run optimization             
             if (fixed_carrier(carrier_ind) ==0)           
-                carrier = carriers{carrier_ind};
+                CALcarrier = carriers{carrier_ind};
                 %current frequencies of carrier on all of its market segments
-                current_markets = Market_freqs(carrier.Markets);
-                
+                current_markets = Market_freqs(CALcarrier.Markets);
+                f_i = zeros(numel(CALcarrier.Markets),1);
+                %loop through markets, get frequency of carrier at these markets
+                for i=1:numel(CALcarrier.Markets)
+                    current_market_freqs = current_markets{i};
+                    %get frequency of current carrier corresponding to current
+                    %market
+                    f_i(i) = current_market_freqs(CALcarrier.freq_inds(i));      
+                end
                 %loop through markets, get frequency of carrier at these markets
                 %for each market, get linear coefficients and quadratic
                 %coefficients
-                quad_terms = zeros(numel(carrier.Markets),1);
-                lin_terms = zeros(numel(carrier.Markets),1);
+                quad_terms = zeros(numel(CALcarrier.Markets),1);
+                lin_terms = zeros(numel(CALcarrier.Markets),1);
                 coef_vector_index = 1;
-                for i=1:numel(carrier.Markets)
-                    freq_ind = carrier.freq_inds(i); 
-                    current_mkt_freqs = current_markets{i};
-                    num_players = numel(current_mkt_freqs);                    
+                for i=1:numel(CALcarrier.Markets)
+                    freq_ind = CALcarrier.freq_inds(i); 
+                    %current_mkt_freqs = current_markets{i};
+                    %num_players = numel(current_mkt_freqs);
+                    current_market_freqs = current_markets{i};
+                    num_players = numel(current_market_freqs);
                     if (num_players)==1
                         num_coefs = 3;
-                        current_coefs = carrier.coef(coef_vector_index:(coef_vector_index + num_coefs - 1));
+                        current_coefs = CALcarrier.coef(coef_vector_index:(coef_vector_index + num_coefs - 1));
                         lin_terms(i) = current_coefs(2);
                         quad_terms(i) = current_coefs(3);
                     elseif (num_players)==2
                         num_coefs = 6;
-                        current_coefs = carrier.coef(coef_vector_index:(coef_vector_index + num_coefs - 1));
+                        current_coefs = CALcarrier.coef(coef_vector_index:(coef_vector_index + num_coefs - 1));
                         %to create linear coefficient, set freq of current
                         %carrier in current market to 1
                         current_market_freqs(freq_ind) = 1;
-                        lin_terms(i) = current_coefs(1+freq_ind) + coef(6)*prod(current_market_freqs);
+                        lin_terms(i) = current_coefs(1+freq_ind) + current_coefs(6)*prod(current_market_freqs);
                         quad_terms(i) = current_coefs(3 + freq_ind);
                     else
                         num_coefs = 10;
-                        current_coefs = carrier.coef(coef_vector_index:(coef_vector_index + num_coefs - 1));
+                        current_coefs = CALcarrier.coef(coef_vector_index:(coef_vector_index + num_coefs - 1));
                         current_market_freqs(freq_ind) = 1;
                         %interaction coefficients
                         int_coefs  = current_coefs(8:10);
@@ -181,37 +190,39 @@ function loss = network_game_loss_quadratic(theta,theta_norm,coef_map,base_coef,
                 end
                 %construct Hessian matrix
                 H = diag(2*quad_terms);
-             
+              
                 %optimize frequencies of this carrier for profit
                 if any(fixed_market_carriers==carrier_ind)
                     %fix relevant markets for this carrier if applicable      
-                    fixed_freqs = carrier.emp_freqs(fixed_markets{carrier_ind});
-                    lower_bound = ones(numel(carrier.Markets),1)*.5;
+                    fixed_freqs = CALcarrier.emp_freqs(fixed_markets{carrier_ind});
+                    lower_bound = ones(numel(CALcarrier.Markets),1)*.5;
                     lower_bound(fixed_markets{carrier_ind}) = fixed_freqs;
-                    upper_bound = ones(numel(carrier.Markets),1)*inf;
+                    upper_bound = ones(numel(CALcarrier.Markets),1)*inf;
                     upper_bound(fixed_markets{carrier_ind}) = fixed_freqs;
-                    x_i = quadprog(H,lin_terms,carrier.A,carrier.b,[],[],lower_bound,upper_bound,[],options);
+                    x_i = quadprog(H,lin_terms,CALcarrier.A,CALcarrier.b,[],[],lower_bound,upper_bound,[],options);
                 else
-                    x_i = quadprog(H,lin_terms,carrier.A,carrier.b,[],[],zeros(numel(carrier.Markets),1),ones(numel(carrier.Markets),1)*inf,[],options);
+                    tic
+                    x_i = quadprog(H,lin_terms,CALcarrier.A,CALcarrier.b,[],[],zeros(numel(CALcarrier.Markets),1),ones(numel(CALcarrier.Markets),1)*inf,[],options);
+                    toc
                 end                
                 %check for convergence
                 diffs(carrier_ind)=sum(abs(f_i-x_i));
                 %set new optimal frequencies into market frequencies data structure
-                for i=1:numel(carrier.Markets)
+                for i=1:numel(CALcarrier.Markets)
                     %frequency in market i 
                     new_market_freq = x_i(i);
                     %get current market frequencies
                     current_market_freqs = current_markets{i};
                     %update frequency of current carrier in current market
-                    current_market_freqs(carrier.freq_inds(i))= new_market_freq;
+                    current_market_freqs(CALcarrier.freq_inds(i))= new_market_freq;
                     %put new frequencies in market back into book keeping  market
                     %frequencies data structure
-                    Market_freqs{carrier.Markets(i)}=current_market_freqs;                  
+                    Market_freqs{CALcarrier.Markets(i)}=current_market_freqs;                  
                 end 
                 %save current frequencies and profits for each market for this
                 %carrier
                 carrier.freqs = x_i;
-                carrier.profits = profit;
+                % ADD THIS AS A CALCULATION LATER carrier.profits = profit;
             end
         end
         %display loop number and time
