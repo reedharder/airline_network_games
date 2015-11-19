@@ -45,6 +45,7 @@ function loss = network_game_loss_quadratic(theta,theta_norm,coef_map,base_coef,
        new_coef = zeros(1,numel(carriers{carrier_ind}.coef));
        for market_ind=1:numel(carriers{carrier_ind}.Markets)
            market_data_ind = market_data_ind + 1;
+           
            %insert new adjusted coefficients for appropriate market size
            %from base coef into appropriate position in new coef            
            mkt_size = market_data_mat(market_data_ind,1);
@@ -141,8 +142,10 @@ function loss = network_game_loss_quadratic(theta,theta_norm,coef_map,base_coef,
     loop=1;
     while (sum(diffs(fixed_carrier == 0)>eps)>0) %loop until converges (just for non fixed diff indices)
         for carrier_ind=1:num_carriers
-            %if carrier is not fixed, run optimization             
-            if (fixed_carrier(carrier_ind) ==0)           
+            %if carrier is not fixed, run optimization    
+            
+            if (fixed_carrier(carrier_ind) ==0)    
+                
                 CALcarrier = carriers{carrier_ind};
                 %current frequencies of carrier on all of its market segments
                 current_markets = Market_freqs(CALcarrier.Markets);
@@ -194,7 +197,7 @@ function loss = network_game_loss_quadratic(theta,theta_norm,coef_map,base_coef,
                 end
                 %construct Hessian matrix
                 H = diag(2*quad_terms);
-              
+                
                 %optimize frequencies of this carrier for profit
                 if any(fixed_market_carriers==carrier_ind)
                     %fix relevant markets for this carrier if applicable      
