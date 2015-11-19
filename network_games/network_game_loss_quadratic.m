@@ -20,6 +20,10 @@
 %CARRIER DATA STRUCTURE
 function loss = network_game_loss_quadratic(theta,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,file_write,MAPE_incl,outfile_fn)
     MAPE_incl(1)=0;
+    MAPE_incl(8)=0; %US LAS_PDX
+%     MAPE_incl(9)=0; %WN LAS_PHX
+%     MAPE_incl(22)=0; %WN LAX_OAK
+%     MAPE_incl(44)=0; %WN OAK_SAN
     % 3 player interaction leave-out index mapping
     remove_interaction = [3,2,1];
     %%%PART I: use new theta values to recompute profit function
@@ -164,12 +168,12 @@ function loss = network_game_loss_quadratic(theta,theta_norm,coef_map,base_coef,
                     num_players = numel(current_market_freqs);
                     if (num_players)==1
                         num_coefs = 3;
-                        current_coefs = CALcarrier.coef(coef_vector_index:(coef_vector_index + num_coefs - 1));
+                        current_coefs = -CALcarrier.coef(coef_vector_index:(coef_vector_index + num_coefs - 1));
                         lin_terms(i) = current_coefs(2);
                         quad_terms(i) = current_coefs(3);
                     elseif (num_players)==2
                         num_coefs = 6;
-                        current_coefs = CALcarrier.coef(coef_vector_index:(coef_vector_index + num_coefs - 1));
+                        current_coefs = -CALcarrier.coef(coef_vector_index:(coef_vector_index + num_coefs - 1));
                         %to create linear coefficient, set freq of current
                         %carrier in current market to 1
                         current_market_freqs(freq_ind) = 1;
@@ -177,7 +181,7 @@ function loss = network_game_loss_quadratic(theta,theta_norm,coef_map,base_coef,
                         quad_terms(i) = current_coefs(3 + freq_ind);
                     else
                         num_coefs = 10;
-                        current_coefs = CALcarrier.coef(coef_vector_index:(coef_vector_index + num_coefs - 1));
+                        current_coefs = -CALcarrier.coef(coef_vector_index:(coef_vector_index + num_coefs - 1));
                         current_market_freqs(freq_ind) = 1;
                         %interaction coefficients
                         int_coefs  = current_coefs(8:10);
@@ -198,12 +202,12 @@ function loss = network_game_loss_quadratic(theta,theta_norm,coef_map,base_coef,
                     lower_bound = ones(numel(CALcarrier.Markets),1)*.5;
                     lower_bound(fixed_markets{carrier_ind}) = fixed_freqs;
                     upper_bound = ones(numel(CALcarrier.Markets),1)*inf;
+             
                     upper_bound(fixed_markets{carrier_ind}) = fixed_freqs;
                     x_i = quadprog(H,lin_terms,CALcarrier.A,CALcarrier.b,[],[],lower_bound,upper_bound,[],options);
-                else
-                    tic
+                else                    
                     x_i = quadprog(H,lin_terms,CALcarrier.A,CALcarrier.b,[],[],zeros(numel(CALcarrier.Markets),1),ones(numel(CALcarrier.Markets),1)*inf,[],options);
-                    toc
+                    
                 end                
                 %check for convergence
                 diffs(carrier_ind)=sum(abs(f_i-x_i));
@@ -221,7 +225,7 @@ function loss = network_game_loss_quadratic(theta,theta_norm,coef_map,base_coef,
                 end 
                 %save current frequencies and profits for each market for this
                 %carrier
-                carrier.freqs = x_i;
+                CALcarrier.freqs = x_i;
                 % ADD THIS AS A CALCULATION LATER carrier.profits = profit;
             end
         end

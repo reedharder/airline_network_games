@@ -2,7 +2,7 @@
 
 %%%PART I: Load scenario carrier and market data
 tic
-n=1000;
+n=10000;
 cd('C:/Users/d29905p/documents/airline_competition_paper/code/network_games')
 market_data_mat = csvread('processed_data/SPSAdatamat_mktmod_reg1_q1.csv',1,2);
 %fn_open = strcat('exp_files/carrier_data_basemod_reg1_2_0.0.txt');
@@ -122,9 +122,11 @@ theta = theta./theta_norm;
 %loss function, 1 for MAPE, 2 for negative R^2
 loss_metric  = 1;
 %indices of carriers that have markets to be fixed
-fixed_market_carriers = [7,8]; %currently, only WN
+%%fixed_market_carriers = [7,8]; %currently, only WN
+fixed_market_carriers = [7,8];
 %the markets of carriers to be fixed, for each carrier
-fixed_markets = {[],[],[],[],[],[],[2],[1 5 10 16]}; %currently,for WN only LAS_LAX, LAX_OAK, OAK_SAN, LAS_PHX and for US only LAS_PDX
+%%%fixed_markets = {[],[],[],[],[],[],[2],[1 5 10 16]}; %currently,for WN only LAS_LAX, LAX_OAK, OAK_SAN, LAS_PHX and for US only LAS_PDX
+fixed_markets = {[],[],[],[],[],[],[2],[1]};
 %LOAD THE MARKETS DATA FILEEEEEEEEE
 %run SPSA
 ys = zeros(2,n);
@@ -137,8 +139,10 @@ for k=0:n-1
     delta=2*round(rand(p,1))-1;
     thetaplus=theta+ck*delta;
     thetaminus=theta-ck*delta;
-    yplus= network_game_loss(thetaplus,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,0,MAPE_incl,outfile_fn);
-    yminus=network_game_loss(thetaminus,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,0,MAPE_incl,outfile_fn);
+    tic
+    yplus= network_game_loss_quadratic(thetaplus,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,0,MAPE_incl,outfile_fn);
+    yminus=network_game_loss_quadratic(thetaminus,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,0,MAPE_incl,outfile_fn);
+    toc
     ys(1,k+1)=yplus;
     ys(2,k+1)=yminus;
     ghat=(yplus-yminus)./(2*ck*delta);
@@ -157,7 +161,7 @@ for k=0:n-1
     
 end
 toc
-final_loss=network_game_loss(best_theta,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,1,MAPE_incl,outfile_fn);
+final_loss=network_game_loss_quadratic(best_theta,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,1,MAPE_incl,outfile_fn);
 toc
 
 
