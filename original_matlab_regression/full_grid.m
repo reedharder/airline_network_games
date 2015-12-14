@@ -3,6 +3,7 @@ fvals=zeros(1*400,6);
 count=0;
 S1=10000; S2=10000;
 N=0.5; %The exponential of the utility of the no-fly option
+
 for alpha=1.29:0.04:1.29
     for beta=-0.0045:0.0005:-0.0045
         for f1=1:20
