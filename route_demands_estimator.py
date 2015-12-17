@@ -39,9 +39,9 @@ def create_route_demands_quarter(year =2007, quarter=1, filter_null_fares=False,
     print('loading data...')
     mkt_df = pd.read_csv(data_dir + base_mkt_fn.format(year=year, quarter=quarter),usecols=['MKT_ID','YEAR','QUARTER','MARKET_COUPONS','ORIGIN','DEST','OPERATING_CARRIER','MARKET_FARE','PASSENGERS'])    
     coup_df = pd.read_csv(data_dir + base_coup_fn.format(year=year, quarter=quarter),usecols=['MKT_ID','SEQ_NUM','ORIGIN','DEST','OPERATING_CARRIER'])
-    merge_df = coup_df.merge(mkt_df,'left',on='MKT_ID')
-    del mkt_df
-    del coup_df
+    ####merge_df = coup_df.merge(mkt_df,'left',on='MKT_ID')
+    ####del mkt_df
+    ####del coup_df
     merge_df=merge_df.sort(columns=['MKT_ID','SEQ_NUM'])
     t0=time.time()
     merge_df = merge_df.groupby('MKT_ID').aggregate()
