@@ -31,7 +31,13 @@ ms_cuttoff is cumulative market share to consider in each market
 merge_HP: True if carrier HP is to be merged with UA
 only_big_carriers: if True, only carriers in list carriers_of_interest will be counted in constructing market type and market size, otherwise any that meet the frequency and marketshare cuttoffs will be included
 carriers_of_interest: list of carriers to be counted in categorizing a market size
+
+
+
+
+
 '''
+
 def nonstop_market_profile(output_file = "processed_data/nonstop_competitive_markets_reg1_q1.csv",aotp_fn = 'bts_data/aotp_march.csv', quarters=[1], \
     t100_fn="bts_data/T100_2007.csv",p52_fn="bts_data/P52_2007.csv", t100_avgd_fn="processed_data/t100_avgd_reg1_q1.csv", merge_HP=True, \
     t100_summed_fn = 'processed_data/t100_summed_reg1_q1.csv', t100_craft_avg_fn='processed_data/t100_craft_avg_reg1_q1.csv',\

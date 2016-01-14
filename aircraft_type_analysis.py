@@ -6,7 +6,9 @@ Created on Mon Nov 30 20:25:15 2015
 """
 import pandas as pd
 
-datadir = "C:/users/d29905p/documents/airline_competition_paper/code/network_games/"
+###datadir = "C:/users/d29905p/documents/airline_competition_paper/code/network_games/"
+
+datadir = 'o:/documents/airline_competition_paper/code/network_games/'
 MISS_DICT_2007 = {'B747-1': 'B747-100',
  'DC-10-F': 'DC10-30F',
  'DC-8-6F': 'DC-8-63F',
@@ -94,26 +96,93 @@ def shortname_from_tailnum(row,schedule=b43_base):
     pass
     
 
-def get_ac_typeid(correspondence_fn=datadir+"processed_data/b43_type_id_correspondence.csv",new_b43_fn = datadir+"bts_data/SCHEDULE_B43_2014.csv",base_b43_fn=datadir+"bts_data/SCHEDULE_B43_FULL.txt"):
+def get_ac_typeid(correspondence_fn=datadir+"processed_data/b43_type_id_correspondence.csv",new_b43_fn = datadir+"bts_data/SCHEDULE_B43_2014.csv",base_b43_fn=datadir+"bts_data/SCHEDULE_B43_FULL_2007.txt"):
     correspondence_table  = pd.read_csv(correspondence_fn).set_index('MODEL')
+    
     b43_new  = pd.read_csv(new_b43_fn)
     b43_base  = pd.read_csv(base_b43_fn)
+    handtable_2014 = pd.read_csv(datadir + "processed_data/b43_2014_model.csv")
+    handtable_2014['MODEL']= handtable_2014['MODEL'].apply(lambda x: x.lstrip().replace(",",""))    
+    handtable_2014=handtable_2014.set_index('MODEL')
     #from correspondence table, match B43 2007 records with a numeric aircraft type identifier corresponding to AC_TYPEID found in AircraftType BTS table
     b43_base['AC_TYPEID'] = b43_base.apply(lambda row: int(correspondence_table.loc[row['MODEL']]['AC_TYPEID']),axis=1)
     #b43_new['AC_TYPEID'] = b43_new.apply(shortname_from_tailnum,axis=1,schedule=b43_base)
     AC_IDS = []
-    failures = []
+    models = []
     for i in range(0,b43_new.shape[0]):
         row = b43_new.iloc[i,:]
+        original_model = row['MODEL']
+        ##if row['MODEL']== 'B-737-4B7':
+          ##  row['MODEL']
         try:
             ac_id = correspondence_table.loc[row['MODEL']]['AC_TYPEID']
+            AC_IDS.append(ac_id)
+            models.append(original_model)
         except KeyError:
             ac_id = b43_base[b43_base['TAIL_NUMBER']==row['TAIL_NUMBER']]['AC_TYPEID'] ##sooo select first available
             if not ac_id.empty:
-                ac_id = int(ac_id)
-            else:
-                print(row)
-        AC_IDS.append(ac_id)
+                try:
+                    ac_id = int(ac_id)
+                    AC_IDS.append(ac_id)
+                    models.append(original_model)
+                except TypeError:
+                    ac_id = ac_id.iloc[0]
+                    AC_IDS.append(ac_id)
+                    models.append(original_model)
+            else:               
+                model = row['MODEL'] if row['MODEL'][:3]!='B-7' else row['MODEL'].replace('B-7','B7')
+                row ='NULL'
+                try:
+                    row = get_shortname(model)    
+                except KeyError:
+                    #try cleaving off end letter by letter to make it fit 
+                    model_copy = model        
+                    while len(model_copy) >1:
+                        model_copy = model_copy[:-1]
+                        try:
+                            row = get_shortname(model_copy)    
+                            break
+                        except KeyError:
+                            pass
+                    #if no matches so far, try adding zeros to end
+                    if row =='NULL':
+                        model_copy = model        
+                        for i in range(0,3):
+                            model_copy += '0'
+                            try:
+                                row = get_shortname(model_copy)    
+                                break
+                            except KeyError:
+                                pass
+                #if still no match, append to failure list            
+                if row =='NULL':
+                    table_row = handtable_2014.loc[model]
+                    if table_row['SHORT_NAME']=='HERCULES' or table_row['SHORT_NAME'][0]=='HERCULES':
+                        ac_id =556  
+                        AC_IDS.append(ac_id)
+                        models.append(original_model)
+                    else: 
+                        try:
+                            ac_id = int(type1_lookup.loc[table_row['SHORT_NAME']]['AC_TYPEID'])                                    
+                            AC_IDS.append(ac_id)
+                            models.append(original_model)
+                        except TypeError:
+                           
+                                ac_id =int(type1_lookup.loc[table_row['SHORT_NAME'].iloc[0]]['AC_TYPEID'])  
+                                AC_IDS.append(ac_id)
+                                models.append(original_model)
+                            
+                else:
+                    ac_id = row[0]
+                    
+                    AC_IDS.append(ac_id)
+                    models.append(original_model) 
+                    
+    conversion_df=pd.DataFrame([AC_IDS, models]).transpose().groupby(0)    
+    idset = list(set(AC_IDS))
+    conversion_dict = {k:list(set(conversion_df.get_group(k)[1].tolist())) for k in idset}
+    
+
 
     
     
