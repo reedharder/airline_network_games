@@ -37,8 +37,8 @@ def connecting_flight_diagnostic(connections_max=2,  db1b_file='DB1B_MARKET_2014
 def create_route_demands_quarter(year =2014, quarter=1, filter_null_fares=False, filter_fare_bounds = [None, None], base_coup_fn= 'DB1B_COUPON_{year}_Q{quarter}.csv', base_mkt_fn = 'DB1B_MARKET_{year}_Q{quarter}.csv',data_dir = 'C:/users/d29905p/Documents/airline_competition_paper/code/network_games/bts_data/'):
     #load data from DB1B markets and coupons into dataframes  
     print('loading data...')
-    mkt_df = pd.read_csv(data_dir + base_mkt_fn.format(year=year, quarter=quarter),usecols=['MKT_ID','YEAR','QUARTER','MARKET_COUPONS','ORIGIN','DEST','OPERATING_CARRIER','MARKET_FARE','PASSENGERS'])    
-    coup_df = pd.read_csv(data_dir + base_coup_fn.format(year=year, quarter=quarter),usecols=['MKT_ID','SEQ_NUM','ORIGIN','DEST','OPERATING_CARRIER'])
+    mkt_df = pd.read_csv(data_dir + base_mkt_fn.format(year=year, quarter=quarter),usecols=['ITIN_ID','MKT_ID','YEAR','QUARTER','MARKET_COUPONS','ORIGIN','DEST','OPERATING_CARRIER','MARKET_FARE','PASSENGERS'])    
+    coup_df = pd.read_csv(data_dir + base_coup_fn.format(year=year, quarter=quarter),usecols=['ITIN_ID','MKT_ID','SEQ_NUM','ORIGIN','DEST','OPERATING_CARRIER'])
     ##merge_df = coup_df.merge(mkt_df,'left',on='MKT_ID')
     ##del mkt_df
     ##del coup_df
@@ -155,7 +155,7 @@ def create_route_demands_quarter2(year =2014, quarter=1, filter_null_fares=False
         else:
             #x = x.sort(columns=['SEQ_NUM'])
             return x.iloc[0]['OPERATING_CARRIER'] 
-            got 
+             
     def second_op(x):
         if x['MARKET_COUPONS'].iloc[0] == 1:
             return ''
