@@ -15,13 +15,14 @@ from itertools import product
 #TUEsday 9th skype 11: 00am or thursdat
 # fRI 12 th 11:00 am
 
-os.chdir("C:/Users/Reed/Desktop/vaze_competition_paper")
+os.chdir('C:/users/d29905p/Documents/airline_competition_paper/code/network_games/bts_data/')
 
-#OHNO SHEEEIT
-carriers = ['SEA','PDX','SFO','SAN','LAX','LAS','PHX','OAK','ONT','SMF','SJC']
-pairs =[sorted([pair[0],pair[1]]) for pair in product(carriers,carriers) if pair[0]!=pair[1] ]
+#OHNO SHEEEIT carriers
+ope35 = ['ATL', 'BOS', 'BWI', 'CLE', 'CLT', 'CVG', 'DCA', 'DEN', 'DFW', 'DTW', 'EWR', 'FLL', 'IAD', 'IAH', 'JFK', 'LAS', 'LAX', 'LGA', 'MCO', 'MDW', 'MEM', 'MIA', 'MSP', 'ORD', 'PDX', 'PHL', 'PHX', 'PIT', 'SAN', 'SEA', 'SFO', 'SLC', 'STL', 'TPA']
+airports = ope35
+pairs =[sorted([pair[0],pair[1]]) for pair in product(airports,airports) if pair[0]!=pair[1] ]
 txtpairs = list(set(["_".join(pair) for pair in pairs]))
-route_demands = pd.read_csv('route_demand_Q1.csv')
+route_demands = pd.read_csv('route_demand_2014_Q1.csv')
 
 def create_market(row):
     market = [row['ORIGIN'], row['DESTINATION']]
@@ -98,7 +99,7 @@ for i,line in enumerate(route_demands.to_dict('records')):
                 #market new route name
                 route = "_".join([line['ORIGIN'],line['CONNECTION'],line['DESTINATION']])
                 #if out of network connection... add to count
-                if line['CONNECTION'] not in carriers:
+                if line['CONNECTION'] not in airports:
                     records[bimarket]['cxnOutD'] += line['PASSENGERS']                  
                 #if carrier already noted for market
                 if carrier_hybrid in records[bimarket]['carriersD']:
@@ -156,7 +157,7 @@ for i,line in enumerate(route_demands.to_dict('records')):
                 #market new route name
                 route = "_".join([line['ORIGIN'],line['CONNECTION'],line['DESTINATION']])
                 #if out of network connection... add to count
-                if line['CONNECTION'] not in carriers:
+                if line['CONNECTION'] not in airports:
                     records[bimarket]['cxnOutD'] += line['PASSENGERS']         
                     records[bimarket]['cxnOut'] += line['PASSENGERS']   
                 #if carrier already noted for market
@@ -202,6 +203,7 @@ df = pd.DataFrame(records).transpose()
 df = df.sort(columns=['mktPax'], ascending=False)
 dfold=df
 df=df[df['mktPax']>0]
+df=df[df['segPax']>0]
 df['ns/seg'] = df['nsPax']/df['segPax']
 
 df['oon/mkt'] = df['cxnOut']/df['mktPax']
@@ -229,9 +231,9 @@ def nice_carriers(row):
     return pd.Series([num_competitors,str(compets),str(combos)])
 df[['numComps','listComps','routes']]=df.apply(nice_carriers,1)
 
-df[['mktPax','segPax','nsPax','ns/seg','oon/mkt','ns/mkt','numComps','listComps','routes',]].to_csv('network_table1.csv',sep='\t')
+df[['mktPax','segPax','nsPax','ns/seg','oon/mkt','ns/mkt','numComps','listComps','routes',]].to_csv('network_table_2014.csv',sep='\t')
 #WHY -- showing up
-networkdf = pd.read_csv('network_table1.csv',sep='\t')
+networkdf = pd.read_csv('network_table_2014.csv',sep='\t')
 networkdf = networkdf[:-4]
 
 import ast

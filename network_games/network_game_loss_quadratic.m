@@ -19,8 +19,8 @@
 %PROBABLY NEED OTHER GENERAL SCENARIO INFORMATION MINED FROM FILE NOT IN
 %CARRIER DATA STRUCTURE
 function loss = network_game_loss_quadratic(theta,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,file_write,MAPE_incl,outfile_fn)
-    MAPE_incl(1)=0;
-    MAPE_incl(8)=0; %US LAS_PDX
+    %MAPE_incl(1)=0;
+    %MAPE_incl(8)=0; %US LAS_PDX
 %     MAPE_incl(9)=0; %WN LAS_PHX
 %     MAPE_incl(22)=0; %WN LAX_OAK
 %     MAPE_incl(44)=0; %WN OAK_SAN
