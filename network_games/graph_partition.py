@@ -31,4 +31,4 @@ for component in connected_components(new_graph):
     components.append([edge for edges in old_graph.values()
                             for edge in edges
                             if c.intersection(edge)])
-print components
+print(components)
