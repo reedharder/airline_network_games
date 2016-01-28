@@ -1,0 +1,66 @@
+##general parameters
+#quarters to consider
+quarters = [1]
+#merge HP and UA data (assume they are suffieciently allied)
+merge_HP = True
+#specific markets to ignore in airport network
+ignore_mkts = ['PDX_SJC','PDX_SFO','OAK_PDX'] 
+#frequency minimum for inclusion of carrier-segment
+freq_cuttoff = 1
+#market share minimum for inclusion of carrier-segment
+ms_cuttoff = .1
+#minimum frequency share for inclusion of carrier-segment
+fs_cuttoff = .1
+#only use consider subset of carriers, given in 'carriers_of_interest' variable
+only_big_carriers = False
+#use this subset of carriers if 'only_big_carriers' is True
+carriers_of_interest = ['AS','UA','US','WN']
+#include regional carriers in game
+include_regional_carriers = True
+#use lower bound on F based on frequency ###CLARIFY THIS###########
+use_lower_F_bound = True
+
+##BTS data files to use
+#T100 segments file to use
+t100_fn = bts_data/T100_%YEAR%.csv
+#schedule p52 financials, need ['AIRCRAFT_TYPE','UNIQUE_CARRIER','TOT_AIR_OP_EXPENSES', 'TOTAL_AIR_HOURS']
+p52_fn = bts_data/SCHEDULE_P52_%YEAR%.csv
+#AOTP file to use
+aotp_fn = bts_data/aotp_march_%YEAR%.csv
+#route demands file to use (created with route_demands_estimator.py)
+route_demands_fn = bts_data/route_demand_%YEAR%_Q1.csv
+b43_fn = bts_data/SCHEDULE_B43_%YEAR%.csv
+#aircraft type table
+ac_type_fn = bts_data/AIRCRAFT_TYPE_LOOKUP.csv
+#supplememtary aircraft lookup dict
+ac_lookup_dict = bts_data/ac_lookup_dict_%YEAR%.pickle
+
+##nonstop_market_profile output files 
+#primary filename of all carrier-segment data 
+t100ranked_output_fn = processed_data/nonstop_competitive_markets_%SESSION_ID%.csv
+#intermediate carrier segment file seperated by aircraft type and unidirectional market\
+t100_summed_fn = processed_data/t100_summed_%SESSION_ID%.csv
+#intermediate carrier segment file seperated by aircraft type 
+t100_craft_avg_fn=processed_data/t100_craft_avg_%SESSION_ID%.csv
+#cost and freq by market, carrier, aircraft type
+t100_avgd_fn= processed_data/t100_avgd_%SESSION_ID%.csv
+
+##get market connection modifiers
+#new carrier segment data file with modified market sizes, according to connecting passengers
+t100ranked_mktmod_output_fn = processed_data/nonstop_competitive_markets_mktmod_%SESSION_ID%.csv
+
+
+##Ftable_new output file: where to save airline fleet data
+ftable_output_fn = processed_data/fleet_lookup_%SESSION_ID%.csv
+
+##fleet_assign inputs
+#minimum carrier-segment coverage by hybrid aircraft type
+assign_min_score = 0.95
+#maximum number of partitions in an aircraft's fleet 
+
+
+##fleet_assign output file
+#fleet assignment data
+fleetdist_output_fn= processed_data/fleetdist_%SESSION_ID%.csv
+#airtimes data 
+airtimes_fn_out=processed_data/airtimes_%SESSION_ID%.csv
