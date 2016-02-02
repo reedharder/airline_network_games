@@ -4,9 +4,9 @@ quarters = [1]
 #merge HP and UA data (assume they are suffieciently allied)
 merge_HP = True
 #specific markets to ignore in airport network
-ignore_mkts = ['PDX_SJC','PDX_SFO','OAK_PDX'] 
+ignore_mkts = [] 
 #frequency minimum for inclusion of carrier-segment
-freq_cuttoff = 1
+freq_cuttoff = 2
 #market share minimum for inclusion of carrier-segment
 ms_cuttoff = .1
 #minimum frequency share for inclusion of carrier-segment
@@ -57,7 +57,9 @@ ftable_output_fn = processed_data/fleet_lookup_%SESSION_ID%.csv
 #minimum carrier-segment coverage by hybrid aircraft type
 assign_min_score = 0.95
 #maximum number of partitions in an aircraft's fleet 
-
+assign_max_partitions = 3 
+#maximum number of craft to try partitioning
+assign_max_partition_set = 11
 
 ##fleet_assign output file
 #fleet assignment data
