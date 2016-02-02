@@ -36,6 +36,7 @@ except NameError:
 major_carriers_2014 = ['DL','WN','UA','US','AA','B6','NK','AS','F9','VX']
 ope35 = ['ATL', 'BOS', 'BWI', 'CLE', 'CLT', 'CVG', 'DCA', 'DEN', 'DFW', 'DTW', 'EWR', 'FLL', 'IAD', 'IAH', 'JFK', 'LAS', 'LAX', 'LGA', 'MCO', 'MDW', 'MEM', 'MIA', 'MSP', 'ORD', 'PDX', 'PHL', 'PHX', 'PIT', 'SAN', 'SEA', 'SFO', 'SLC', 'STL', 'TPA']
 western= ['SEA','PDX','SFO','SAN','LAX','LAS','PHX','OAK','ONT','SMF','SJC']
+hubs_2014 = {'F9': ['DEN', 'DFW'], 'VX': ['LAX', 'SFO', 'DCA', 'MCO'], 'WN': ['MDW',  'BWI',  'DEN',  'LAS',  'PHX',  'STL',  'ATL',  'MCO',  'TPA',  'LAX',  'SAN'], 'AS': ['SEA',  'PDX',  'ORD',  'DFW',  'LAX',  'SAN',  'LAS',  'ATL',  'MSP',  'SFO',  'DCA',  'DEN',  'SLC'], 'UA': ['ORD', 'DEN', 'IAH', 'IAD', 'EWR', 'SFO', 'LAX', 'CLE', 'MCO'], 'US': ['CLT', 'PHL', 'PHX', 'DCA', 'DFW', 'ORD', 'DEN', 'LAX'], 'DL': ['ATL', 'MSP', 'DTW', 'SLC', 'JFK', 'LGA', 'LAX', 'CVG'], 'AA': ['DFW', 'ORD', 'MIA', 'LAX', 'CLT', 'JFK', 'DCA', 'PHX', 'PHL'], 'NK': ['FLL', 'DFW', 'LAS', 'ORD', 'MSP'], 'B6': ['JFK', 'BOS', 'MCO', 'FLL', 'TPA']}
 
 def main_data_pipeline(year = 2014, quarters = [1], session_id="ope2014", parameter_file="parameters_default.txt", airport_network=ope35, major_carriers =major_carriers_2014):
     #parse parameters file, extract variables 
@@ -940,7 +941,7 @@ def create_results_table(outfile_fn='exp_files/SPSA_results_table_ope2014.csv',i
 
 def experiment_categories_2(row):    
     #create list of double-hubs for carriers
-    hub_sets = {'WN':['LAX','OAK','PHX','SAN','LAS'],'US':['LAS','PHX'],'UA':['LAX','SFO'],'AS':['SEA','LAX']}
+    hub_sets =hubs_2014
     hub_groups = []    
     for carrier, hubs in hub_sets.items():
         pairs =[sorted([pair[0],pair[1]]) for pair in product(hubs,hubs) if pair[0]!=pair[1] ]

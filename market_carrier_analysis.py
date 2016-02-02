@@ -18,11 +18,12 @@ import statsmodels.formula.api as sm
 
 
 major_carriers_2014 = ['DL','WN','UA','US','AA','B6','NK','AS','F9','VX']
+ope35 = ['ATL', 'BOS', 'BWI', 'CLE', 'CLT', 'CVG', 'DCA', 'DEN', 'DFW', 'DTW', 'EWR', 'FLL', 'IAD', 'IAH', 'JFK', 'LAS', 'LAX', 'LGA', 'MCO', 'MDW', 'MEM', 'MIA', 'MSP', 'ORD', 'PDX', 'PHL', 'PHX', 'PIT', 'SAN', 'SEA', 'SFO', 'SLC', 'STL', 'TPA']
 
 
 
 data_dir = "O:/documents/airline_competition_paper/code/network_games/"
-
+data_dir2  = "C:/users/reed/desktop/airline_competition_paper/airline_network_games/network_games/"
 t100ranked_mktmod_file = data_dir + "processed_data/nonstop_competitive_markets_mktmod_ope2014.csv"
 
 major_carriers = major_carriers_2014
@@ -77,5 +78,49 @@ def airline_regression():
     fit_base.summary()
     preds =fit_base.predict()
     MAPE = sum(abs(target_frequency-preds))/sum(target_frequency)
-   #.29....we can do better hopefully!
+    #.29....we can do better hopefully!
+    
+def hub_analysis():
+    ports = ope35
+    hub_cuttoff = .4
+    plot = True
+    route_demands =pd.read_csv(data_dir2 + "bts_data/route_demand_2014_Q1.csv")
+    route_demands = route_demands[route_demands['FIRST_OPERATING_CARRIER'].isin(major_carriers)]
+    route_demands = route_demands.groupby('FIRST_OPERATING_CARRIER')
+    carrier_ports = []
+    for carrier in major_carriers:
+        routes = route_demands.get_group(carrier)
+        cxn  = routes['CONNECTION'].value_counts()
+        ends = routes['DESTINATION'].value_counts()
+        for port in ope35:
+            try:
+                c = cxn[port]
+            except KeyError:
+                c = 0
+            try:
+                e = ends[port]
+            except:
+                e = 0
+            
+            carrier_ports.append({'CARRIER':carrier,'PORT':port, 'CXNS':c, 'ENDS':e})
+    carrier_ports = pd.DataFrame(carrier_ports)
+    carrier_ports['STOPS'] = carrier_ports['CXNS'] +carrier_ports['ENDS']
+    carrier_ports['CXN_RATIO'] = carrier_ports['CXNS']/carrier_ports['STOPS']
+    carrier_ports = carrier_ports[carrier_ports['CXN_RATIO']!=np.inf]
+    carrier_ports = carrier_ports.sort(['CARRIER','CXN_RATIO'],ascending = [True,False])
+    ports_gb = carrier_ports.groupby('CARRIER')
+    if plot:
+        for carrier in major_carriers:
+            plt.figure()
+            ratios = ports_gb.get_group(carrier)['CXN_RATIO']
+            plt.scatter(range(1,ratios.shape[0] +1),ratios)
+            plt.title(carrier)
+    #.4 looks like good a place as any
+    hubs = {carrier:[] for carrier in major_carriers}
+    for i in range(0,carrier_ports.shape[0]):
+        row = carrier_ports.iloc[i,:]
+        if row['CXN_RATIO'] >.4:
+            hubs[row['CARRIER']] = hubs[row['CARRIER']] + [row['PORT']]
+        
+   
     
