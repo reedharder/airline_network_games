@@ -528,7 +528,7 @@ def fleet_assign(major_carriers = ['AS','UA','US','WN'], output_fn="processed_da
     fleet_lookup_fn = "processed_data/fleet_lookup_reg1_q1.csv",market_table_fn= "processed_data/nonstop_competitive_markets_reg1_q1.csv",\
     assign_min_score = .95, assign_max_partitions = 3, assign_max_partition_set = 11):
         
-    #load netowrk data file created by nonstop_market_profile function
+    #load network data file created by nonstop_market_profile function
     t100ranked = pd.read_csv(market_table_fn)
     #get carriers and markets under study
     markets =  t100ranked['BI_MARKET'].tolist()
