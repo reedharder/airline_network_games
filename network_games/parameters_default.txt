@@ -61,8 +61,19 @@ assign_max_partitions = 3
 #maximum number of craft to try partitioning
 assign_max_partition_set = 11
 
-##fleet_assign output file
+##fleet_assign outputs
 #fleet assignment data
 fleetdist_output_fn= processed_data/fleetdist_%SESSION_ID%.csv
 #airtimes data 
 airtimes_fn_out=processed_data/airtimes_%SESSION_ID%.csv
+
+##create_network_game_datatable parameters
+#player data output file
+network_game_output_fn = processed_data/carrier_data_%SESSION_ID%.txt
+#payoff coefficient output file
+coef_outfile = processed_data/transcoef_table_%SESSION_ID%.csv
+#use t100ranked market data with market sizes adjusted for connections, or not?
+use_adj_market = True
+
+##output file create_SPSA_datamat
+SPSA_outfile_fn = processed_data/SPSAdatamat_%SESSION_ID%.csv

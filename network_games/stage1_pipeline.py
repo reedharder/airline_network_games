@@ -69,13 +69,13 @@ def main_data_pipeline(year = 2014, quarters = [1], session_id="ope2014_2", para
         assign_min_score = variable_dict['assign_min_score'], assign_max_partitions =  variable_dict['assign_max_partitions'], assign_max_partition_set =  variable_dict['assign_max_partitions'])
     # creating game datatable GENERALIZE THE VARIABLES LATER!
     print("creating data tables for best response freqeuncy estimation...")
-    coef_df  = create_network_game_datatable(outfile='processed_data/carrier_data_ope2014.txt',coef_outfile='processed_data/transcoef_table_ope2014.csv',\
-        use_adj_market=True,t100ranked_fn = 'processed_data/nonstop_competitive_markets_mktmod_ope2014.csv',\
-        fleet_lookup_fn = "processed_data/fleet_lookup_ope2014.csv",aotp_fn = variable_dict['aotp_fn'],\
+    coef_df  = create_network_game_datatable(outfile=variable_dict['network_game_output_fn'],coef_outfile=variable_dict['coef_outfile'],\
+        use_adj_market=variable_dict['use_adj_market'],t100ranked_fn = variable_dict['t100ranked_mktmod_output_fn'],\
+        fleet_lookup_fn = variable_dict['ftable_output_fn'],aotp_fn = variable_dict['aotp_fn'],\
         fleet_dist_fn=variable_dict['fleetdist_output_fn'])   
     # creating data table for SPSA optimization
     print("creating data tables for SPSA coefficient optimization...")
-    t100sorted = create_SPSA_datamat(t100ranked_fn = 'processed_data/nonstop_competitive_markets_mktmod_ope2014.csv',outfile_fn = "processed_data/SPSAdatamat_mktmod_ope2014.csv")
+    t100sorted = create_SPSA_datamat(t100ranked_fn = variable_dict['t100ranked_mktmod_output_fn'],outfile_fn = variable_dict['SPSA_outfile_fn'])
     print("Done")
     #return list of DataFrames used
     return [t100ranked,fleet_lookup,fleet_dist,coef_df,t100sorted]
@@ -413,6 +413,29 @@ def Ftable_new(output_fn="processed_data/fleet_lookup_reg1_q1.csv", ac_lookup_di
     return fleet_lookup
 
 
+
+##alternate fleet assigner via overlapping graph method
+def create_fleet_assignments_graphwise(fleet_dist,fleet_lookup, major_carriers, min_score = .95):
+    
+    #function to find all connected subgraphs in graph
+    def connected_components(neighbors):
+        components = []
+        seen = set()
+        def component(node):
+            subgraph = []
+            nodes = set([node])
+            while nodes:
+                node = nodes.pop()
+                seen.add(node)
+                nodes |= neighbors[node] - seen
+                subgraph.append(node)
+            return list(set(subgraph))
+        for node in neighbors:
+            if node not in seen:
+                components.append(component(node)) 
+        return components
+
+    # create graph from
 
 ## helper function to create fleet assignments, based on heuristic algorithm
 #ADD COMMENTS! SEND PARAMETERS TO OUTER FUNCTION  AND THEN TO PARAMETER FILE!
