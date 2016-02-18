@@ -67,7 +67,7 @@ def main_data_pipeline(year = 2014, quarters = [1], session_id="ope2014_2", para
         t100_summed_fn = variable_dict['t100_summed_fn'],fleet_lookup_fn = variable_dict['ftable_output_fn'],\
         market_table_fn=variable_dict['t100ranked_mktmod_output_fn'],\
         assign_min_score = variable_dict['assign_min_score'], assign_max_partitions =  variable_dict['assign_max_partitions'], assign_max_partition_set =  variable_dict['assign_max_partitions'])
-    # creating game datatable GENERALIZE THE VARIABLES LATER!
+    # creating game datatable
     print("creating data tables for best response freqeuncy estimation...")
     coef_df  = create_network_game_datatable(outfile=variable_dict['network_game_output_fn'],coef_outfile=variable_dict['coef_outfile'],\
         use_adj_market=variable_dict['use_adj_market'],t100ranked_fn = variable_dict['t100ranked_mktmod_output_fn'],\
@@ -663,6 +663,7 @@ def create_network_game_datatable(outfile='processed_data/carrier_data_reg1_q1.t
     with open(outfile,'w') as outfile:       
         # group competitive markets table by market
         t100_gb_market = t100ranked.groupby('BI_MARKET')
+        t100_carrier_market = t100ranked.groupby(['UNIQUE_CARRIER','BI_MARKET'])
         #get set of markets
         markets_sorted = sorted(list(set(t100ranked['BI_MARKET'].tolist())))
         num_mkts = len(markets_sorted)
@@ -719,7 +720,9 @@ def create_network_game_datatable(outfile='processed_data/carrier_data_reg1_q1.t
                         #attempt to calculate the above from AOTP data
                         try:
                             block_hours=aotp_mar_times.get_group((carrier,mk))['AIR_TIME'].iloc[0]
-                        except KeyError: #if blackhours can't be found for specific carrier, take averaege accross carrier
+                        except KeyError: #if blackhours can't be found for specific carrier, take averaege accross carriers
+                            block_hours=float(t100_carrier_market.get_group((carrier,mk))['FLIGHT_TIME'])
+                            '''
                             try:
                                 aotp_mar_times_avg =aotp_mar[['UNIQUE_CARRIER','BI_MARKET','AIR_TIME']].groupby(['UNIQUE_CARRIER','BI_MARKET']).aggregate(lambda x: np.mean(x)/60)
                                 aotp_mar_times_avg =aotp_mar_times_avg.reset_index().groupby(['BI_MARKET'])
@@ -727,6 +730,7 @@ def create_network_game_datatable(outfile='processed_data/carrier_data_reg1_q1.t
                             except KeyError: #if ONT time can't be found, approximate with LAX  GENERALIzE WITH TIMES FROM T!10000000
                                 ###mkk=mk.replace('ONT','LAX') 
                                 block_hours=2  #VERY APPROXIMATE!!  
+                            '''
                         a_row.append(2*(block_hours +45/60))
                     #otherwise, no constraint for this market
                     else:
@@ -900,7 +904,7 @@ def create_SPSA_datamat(t100ranked_fn = "processed_data/nonstop_competitive_mark
 '''
 function to build easily read data table from MATLAB output
 '''
-def create_results_table(outfile_fn='exp_files/SPSA_results_table_ope2014.csv',input_fn = "exp_files/SPSA_results_fulleq_MAPE_ope2014.csv",t100ranked_fn = "processed_data/nonstop_competitive_markets_mktmod_ope2014.csv"):
+def create_results_table(outfile_fn='exp_files/SPSA_results_table_ope2014_2.csv',input_fn = "exp_files/SPSA_results_fulleq_MAPE_ope2014_2.csv",t100ranked_fn = "processed_data/nonstop_competitive_markets_mktmod_ope2014_2.csv"):
     #read in original market profile file    
     t100ranked  = pd.read_csv(t100ranked_fn) 
     #use subset of this as base for results table
@@ -964,7 +968,7 @@ def create_results_table(outfile_fn='exp_files/SPSA_results_table_ope2014.csv',i
 
 def experiment_categories_2(row):    
     #create list of double-hubs for carriers
-    hub_sets = {'F9': ['DEN', 'DFW'], 'VX': ['LAX', 'SFO', 'DCA', 'MCO'], 'WN': ['MDW', 'BWI', 'DEN', 'LAS', 'PHX', 'STL', 'ATL', 'MCO', 'TPA', 'LAX', 'SAN'], 'AS': ['SEA', 'PDX', 'ORD', 'DFW', 'LAX', 'SAN', 'LAS', 'ATL', 'MSP', 'SFO', 'DCA', 'DEN', 'SLC'], 'UA': ['ORD', 'DEN', 'IAH', 'IAD', 'EWR', 'SFO', 'LAX', 'CLE', 'MCO'], 'US': ['CLT', 'PHL', 'PHX', 'DCA', 'DFW', 'ORD', 'DEN', 'LAX'], 'DL': ['ATL', 'MSP', 'DTW', 'SLC', 'JFK', 'LGA', 'LAX', 'CVG'], 'AA': ['DFW', 'ORD', 'MIA', 'LAX', 'CLT', 'JFK', 'DCA', 'PHX', 'PHL'], 'NK': ['FLL', 'DFW', 'LAS', 'ORD', 'MSP'], 'B6': ['JFK', 'BOS', 'MCO', 'FLL', 'TPA']}
+    hub_sets = {'F9': ['DEN'], 'VX': ['LAX', 'SFO'], 'WN': ['MDW', 'BWI', 'DEN', 'LAS', 'PHX', 'STL', 'ATL', 'MCO', 'TPA', 'LAX', 'SAN'], 'AS': ['SEA', 'PDX', 'ORD', 'DFW', 'LAX', 'SAN', 'LAS', 'ATL'], 'UA': ['ORD', 'DEN', 'IAH', 'IAD', 'EWR', 'SFO', 'LAX', 'CLE'], 'US': ['CLT', 'PHL'], 'DL': ['ATL', 'MSP', 'DTW', 'SLC', 'JFK', 'LGA', 'LAX', 'CVG'], 'AA': ['DFW', 'ORD', 'MIA', 'LAX'], 'NK': ['FLL'], 'B6': ['JFK', 'BOS', 'MCO', 'FLL', 'TPA']}
     hub_groups = []    
     for carrier, hubs in hub_sets.items():
         pairs =[sorted([pair[0],pair[1]]) for pair in product(hubs,hubs) if pair[0]!=pair[1] ]

@@ -23,7 +23,7 @@ ope35 = ['ATL', 'BOS', 'BWI', 'CLE', 'CLT', 'CVG', 'DCA', 'DEN', 'DFW', 'DTW', '
 
 
 data_dir = "O:/documents/airline_competition_paper/code/network_games/"
-data_dir2  = "C:/users/reed/desktop/airline_competition_paper/airline_network_games/network_games/"
+##data_dir2  = "C:/users/reed/desktop/airline_competition_paper/airline_network_games/network_games/"
 t100ranked_mktmod_file = data_dir + "processed_data/nonstop_competitive_markets_mktmod_ope2014.csv"
 
 major_carriers = major_carriers_2014
@@ -84,7 +84,7 @@ def hub_analysis():
     ports = ope35
     hub_cuttoff = .4
     plot = True
-    route_demands =pd.read_csv(data_dir2 + "bts_data/route_demand_2014_Q1.csv")
+    route_demands =pd.read_csv(data_dir + "bts_data/route_demand_2014_Q1.csv")
     route_demands = route_demands[route_demands['FIRST_OPERATING_CARRIER'].isin(major_carriers)]
     route_demands = route_demands.groupby('FIRST_OPERATING_CARRIER')
     carrier_ports = []
