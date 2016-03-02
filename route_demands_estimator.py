@@ -107,14 +107,15 @@ def create_route_demands_quarter(year =2014, quarter=1, filter_null_fares=False,
     
     
 
-def create_route_demands_quarter2(year =2014, quarter=1, filter_null_fares=False, filter_fare_bounds = [None, None], base_coup_fn= 'DB1B_COUPON_{year}_Q{quarter}.csv', base_mkt_fn = 'DB1B_MARKET_{year}_Q{quarter}.csv',data_dir = 'C:/users/d29905p/Documents/airline_competition_paper/code/network_games/bts_data/'):
-    year =2014
-    quarter=1
-    filter_null_fares=False
-    filter_fare_bounds = [None, None]
-    base_coup_fn= 'DB1B_COUPON_{year}_Q{quarter}.csv'
-    base_mkt_fn = 'DB1B_MARKET_{year}_Q{quarter}.csv'
-    data_dir = 'C:/users/d29905p/Documents/airline_competition_paper/code/network_games/bts_data/'
+def create_route_demands_quarter2(year =2014, quarter=1, filter_null_fares=False, filter_fare_bounds = [None, None], base_coup_fn= 'DB1B_COUPON_{year}_Q{quarter}.csv', base_mkt_fn = 'DB1B_MARKET_{year}_Q{quarter}.csv',data_dir = 'C:/users/d29905p/Documents/airline_competition_paper/code/network_games/bts_data/', outfile = 'route_demand_{year}_Q{quarter}.csv'):
+    #year =2014
+    #quarter=1
+    #filter_null_fares=False
+    #filter_fare_bounds = [None, None]
+    #base_coup_fn= 'DB1B_COUPON_{year}_Q{quarter}.csv'
+    #base_mkt_fn = 'DB1B_MARKET_{year}_Q{quarter}.csv'
+    outfile  = outfile.format(year=year, quarter=quarter)
+   # data_dir = 'C:/users/d29905p/Documents/airline_competition_paper/code/network_games/bts_data/'
     #load data from DB1B markets and coupons into dataframes  
     print('loading data...')
     mkt_df = pd.read_csv(data_dir + base_mkt_fn.format(year=year, quarter=quarter),usecols=['MKT_ID','YEAR','QUARTER','MARKET_COUPONS','MARKET_FARE','PASSENGERS'])    
@@ -173,7 +174,7 @@ def create_route_demands_quarter2(year =2014, quarter=1, filter_null_fares=False
     merge_df = merge_df[leg_categories].groupby(['MKT_ID'])
     
     t0=time.time()
-    with open(data_dir + "leg_file.csv",'a') as outfile:
+    with open(data_dir + "leg_file_" + outfile,'a') as outfile:
         outfile.write(",".join(['YEAR','QUARTER','NUM_FLIGHTS','PASSENGERS','ORIGIN','CONNECTION','DESTINATION','FIRST_OPERATING_CARRIER','SECOND_OPERATING_CARRIER','MARKET_FARE']) +"\n")
         for i, (g, x) in enumerate(merge_df):
             if i % 10000 == 0:
@@ -185,8 +186,8 @@ def create_route_demands_quarter2(year =2014, quarter=1, filter_null_fares=False
         
             
             outfile.write(",".join(new_line) +'\n')
-    
-    merge_df = pd.read_csv(data_dir + "leg_file.csv")
+    #REVISE LEG FILE, NEEDS TO BE DELLED OR NAME CHANGED AFTER USE, make this a user option. THEN RESCUE LEG FILE FOR 2007, BETTER PARAMETERIZE THIS FUNCTION
+    merge_df = pd.read_csv(data_dir + "leg_file_" + outfile, dtype={'YEAR':int,'QUARTER':int,'PASSENGERS':int,'MARKET_FARE':float})
     def wavg(group):
         d = group['MARKET_FARE']
         w = group['PASSENGERS']
@@ -197,6 +198,6 @@ def create_route_demands_quarter2(year =2014, quarter=1, filter_null_fares=False
     merge_df = merge_df.drop('level_8',1)
     merge_df['PASSENGERS']=merge_df['PASSENGERS']*10 
     merge_df = merge_df.replace('NotANumber','')
-    merge_df.to_csv(data_dir + 'route_demand_2014_Q1.csv')
+    merge_df.to_csv(data_dir + outfile)
    
     return merge_df
