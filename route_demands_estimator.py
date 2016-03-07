@@ -187,17 +187,76 @@ def create_route_demands_quarter2(year =2014, quarter=1, filter_null_fares=False
             
             outfile.write(",".join(new_line) +'\n')
     #REVISE LEG FILE, NEEDS TO BE DELLED OR NAME CHANGED AFTER USE, make this a user option. THEN RESCUE LEG FILE FOR 2007, BETTER PARAMETERIZE THIS FUNCTION
-    merge_df = pd.read_csv(data_dir + "leg_file_" + outfile, dtype={'YEAR':int,'QUARTER':int,'PASSENGERS':int,'MARKET_FARE':float})
-    def wavg(group):
-        d = group['MARKET_FARE']
-        w = group['PASSENGERS']
-        return pd.DataFrame([{'PASSENGERS': w.sum(), 'MARKET_FARE': (d * w).sum() / w.sum()}])
-    merge_df = merge_df.fillna('NotANumber')
-    merge_df = merge_df.groupby(['YEAR','QUARTER','NUM_FLIGHTS','ORIGIN','CONNECTION','DESTINATION','FIRST_OPERATING_CARRIER','SECOND_OPERATING_CARRIER']).apply(wavg).reset_index()
-    #FOR NOW...
-    merge_df = merge_df.drop('level_8',1)
-    merge_df['PASSENGERS']=merge_df['PASSENGERS']*10 
-    merge_df = merge_df.replace('NotANumber','')
-    merge_df.to_csv(data_dir + outfile)
+    try:
+        merge_df = pd.read_csv(data_dir + "leg_file_" + outfile, dtype={'YEAR':int,'QUARTER':int,'PASSENGERS':int,'MARKET_FARE':float})
+        def wavg(group):
+            d = group['MARKET_FARE']
+            w = group['PASSENGERS']
+            return pd.DataFrame([{'PASSENGERS': w.sum(), 'MARKET_FARE': (d * w).sum() / w.sum()}])
+        merge_df = merge_df.fillna('NotANumber')
+        merge_df = merge_df.groupby(['YEAR','QUARTER','NUM_FLIGHTS','ORIGIN','CONNECTION','DESTINATION','FIRST_OPERATING_CARRIER','SECOND_OPERATING_CARRIER']).apply(wavg).reset_index()
+        #FOR NOW...
+        merge_df = merge_df.drop('level_8',1)
+        ##merge_df['PASSENGERS']=merge_df['PASSENGERS']*10 
+        merge_df = merge_df.replace('NotANumber','')
+        merge_df.to_csv(data_dir + outfile)
+    except:
+        return merge_df
    
     return merge_df
+    
+
+def run():
+    for quarter in [2,3,4]:
+        year =2014
+        data_dir = 'C:/users/d29905p/Documents/airline_competition_paper/code/network_games/bts_data/'
+        outfile = 'route_demand_{year}_Q{quarter}.csv'
+        outfile  = outfile.format(year=year, quarter=quarter)
+        merge_df = pd.read_csv(data_dir + "leg_file_" + outfile)# dtype={'YEAR':int,'QUARTER':int,'PASSENGERS':int,'NUM_FLIGHTS':int, 'MARKET_FARE':float})
+        merge_df[['YEAR','QUARTER', 'NUM_FLIGHTS']] = merge_df[['YEAR','QUARTER', 'NUM_FLIGHTS']].astype(int) 
+        merge_df[['MARKET_FARE','PASSENGERS']] =  merge_df[['MARKET_FARE','PASSENGERS']].astype(float)
+        def wavg(group):
+                d = group['MARKET_FARE']
+                w = group['PASSENGERS']
+                return pd.DataFrame([{'PASSENGERS': w.sum(), 'MARKET_FARE': (d * w).sum() / w.sum()}])
+        merge_df = merge_df.fillna('NotANumber')
+        merge_df = merge_df.groupby(['YEAR','QUARTER','NUM_FLIGHTS','ORIGIN','CONNECTION','DESTINATION','FIRST_OPERATING_CARRIER','SECOND_OPERATING_CARRIER']).apply(wavg).reset_index()
+        #FOR NOW...
+        merge_df = merge_df.drop('level_8',1)
+        ##merge_df['PASSENGERS']=merge_df['PASSENGERS']*10 
+        merge_df = merge_df.replace('NotANumber','')
+        merge_df.to_csv(data_dir + outfile)
+        ###m = create_route_demands_quarter2(year =2014, quarter=q)
+    
+    quarter =1
+    year =2014
+    data_dir = 'C:/users/d29905p/Documents/airline_competition_paper/code/network_games/bts_data/'
+    outfile = 'route_demand_{year}_Q{quarter}.csv'
+    outfile  = outfile.format(year=year, quarter=quarter)
+    merge_df1 = pd.read_csv(data_dir + outfile)
+    quarter = 2
+    outfile = 'route_demand_{year}_Q{quarter}.csv'
+    outfile  = outfile.format(year=year, quarter=quarter)
+    merge_df2 = pd.read_csv(data_dir + outfile)
+    quarter = 3
+    outfile = 'route_demand_{year}_Q{quarter}.csv'
+    outfile  = outfile.format(year=year, quarter=quarter)
+    merge_df3 = pd.read_csv(data_dir + outfile)
+    quarter = 4
+    outfile = 'route_demand_{year}_Q{quarter}.csv'
+    outfile  = outfile.format(year=year, quarter=quarter)
+    merge_df4 = pd.read_csv(data_dir + outfile)
+    merge_df = pd.concat([merge_df1,merge_df2,merge_df3, merge_df4])
+    
+    
+    
+    
+    
+    rd2007  =pd.read_csv(data_dir + 'route_demand_2007_Q1.csv').drop(['Unnamed: 0','MARKET_FARE'],axis=1)
+    #rd2007['PASSENGERS'] = rd2007['PASSENGERS']*10
+    rd2007old  =pd.read_csv(data_dir + 'route_demand_2007_Q1_old.csv').sort(columns=['ORIGIN','CONNECTION','DESTINATION','FIRST_OPERATING_CARRIER','SECOND_OPERATING_CARRIER'])
+    df = pd.concat([rd2007, rd2007old])
+    df = df.reset_index(drop=True)
+    df_gpby = df.groupby(list(df.columns))
+    idx = [x[0] for x in df_gpby.groups.values() if len(x) == 1]
+    df =df.reindex(idx)

@@ -3,7 +3,8 @@ n=2;
 %directory
 datadir = 'C:/users/d29905P/Documents/airline_competition_paper/';
 %profit function
-airline_profit_func = @profit_nplayer_scheddelay;
+%airline_profit_func = @profit_nplayer_scheddelay;
+airline_profit_func =profit_nplayer(p,f,M,S,C,alpha,beta,N,i,p_i)
 %number of regression coefficients
 if (n ==1)
     num_coefs = 3;

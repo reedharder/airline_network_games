@@ -1,8 +1,8 @@
-function [coefs, r2, r2adj, mdl,ps,fvals] = second_stage_nplayer(airline_profit_func,n,phi,m,beta,S,N)
+function [coefs, r2, r2adj, mdl,ps,fvals] = second_stage_nplayer_scurve(airline_profit_func,n,alpha,beta,S,N)
 options = optimset('Display', 'off') ;
 tic
-ps=zeros(20^n,6+2*n);
-fvals=zeros(20^n,6+2*n);
+ps=zeros(20^n,5+2*n);
+fvals=zeros(20^n,5+2*n);
 %symmetric S, for now
 S_vec=ones(n,1)*S;
 M=1000; C=ones(n,1)*10000;
@@ -22,7 +22,7 @@ for combo = 1:20^n
     while sum(diffs)>eps
         for i=1:n
             p_i=p(i);            
-            fun_i=@(p_i)airline_profit_func(p,f,M,S_vec,C,phi,m,beta,N,i,p_i);
+            fun_i=@(p_i)airline_profit_func(p,f,M,S_vec,C,alpha,beta,N,i,p_i); 
             [x_i, fval(i)]=fmincon(fun_i,p0,[],[],[],[],0,[],[],options);
             diffs(i)=abs(p(i)-x_i);
             p(i)=x_i;            
@@ -30,8 +30,8 @@ for combo = 1:20^n
         c=c+1;
     end
     count=count+1;
-    ps(count,:)=[phi,m,beta,S_vec',N,f',p'];
-    fvals(count,:)=[phi,m,beta,S_vec',N,f',-fval'];
+    ps(count,:)=[alpha,beta,S_vec',N,f',p'];
+    fvals(count,:)=[alpha,beta,S_vec',N,f',-fval'];
     if (mod(count,1000)==0)
         display(count)
         toc
@@ -49,7 +49,7 @@ elseif (n==4)
     X=[fs(:,1),fs(:,2),fs(:,3),fs(:,4),fs(:,1).^2,fs(:,2).^2,fs(:,3).^2,fs(:,4).^2,fs(:,1).*fs(:,2),fs(:,1).*fs(:,3),fs(:,1).*fs(:,4),fs(:,2).*fs(:,3),fs(:,2).*fs(:,4),fs(:,3).*fs(:,4)];
 end
 %profits
-Y =fvals(:,6+n+1);
+Y =fvals(:,5+n+1);
 %fit model
 mdl = fitlm(X,Y);
 %coefficients
