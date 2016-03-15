@@ -123,6 +123,55 @@ AOTP_POST='''UserTableName=On_Time_Performance&DBShortName=On_Time&RawDataTable=
 &VarType=Char&VarDesc=Div5TotalGTime&VarType=Num&VarDesc=Div5LongestGTime&VarType=Num&VarDesc=Div5WheelsOff
 &VarType=Char&VarDesc=Div5TailNum&VarType=Char'''
 
+AOTP_POST_CS = '''UserTableName=On_Time_Performance&DBShortName=On_Time&RawDataTable=T_ONTIME&sqlstr=+SELECT+YEAR%2CQUARTER
+%2CMONTH%2CDAY_OF_MONTH%2CDAY_OF_WEEK%2CFL_DATE%2CUNIQUE_CARRIER%2CTAIL_NUM%2CORIGIN%2CDEST%2CDEP_TIME
+%2CDEP_DELAY_NEW%2CDEP_TIME_BLK%2CCRS_ARR_TIME%2CARR_TIME%2CARR_DELAY_NEW%2CARR_TIME_BLK%2CCANCELLED
+%2CDIVERTED%2CAIR_TIME%2CDISTANCE%2CCARRIER_DELAY%2CWEATHER_DELAY%2CNAS_DELAY%2CSECURITY_DELAY%2CLATE_AIRCRAFT_DELAY
++FROM++T_ONTIME+WHERE+Month+%3D1+AND+YEAR%3D2007&varlist=YEAR%2CQUARTER%2CMONTH%2CDAY_OF_MONTH%2CDAY_OF_WEEK
+%2CFL_DATE%2CUNIQUE_CARRIER%2CTAIL_NUM%2CORIGIN%2CDEST%2CDEP_TIME%2CDEP_DELAY_NEW%2CDEP_TIME_BLK%2CCRS_ARR_TIME
+%2CARR_TIME%2CARR_DELAY_NEW%2CARR_TIME_BLK%2CCANCELLED%2CDIVERTED%2CAIR_TIME%2CDISTANCE%2CCARRIER_DELAY
+%2CWEATHER_DELAY%2CNAS_DELAY%2CSECURITY_DELAY%2CLATE_AIRCRAFT_DELAY&grouplist=&suml=&sumRegion=&filter1
+=title%3D&filter2=title%3D&geo=All%A0&time={month}&timename=Month&GEOGRAPHY=All&XYEAR={year}&FREQUENCY={frequency}&VarName
+=YEAR&VarDesc=Year&VarType=Num&VarName=QUARTER&VarDesc=Quarter&VarType=Num&VarName=MONTH&VarDesc
+=Month&VarType=Num&VarName=DAY_OF_MONTH&VarDesc=DayofMonth&VarType=Num&VarName=DAY_OF_WEEK&VarDesc=DayOfWeek
+&VarType=Num&VarName=FL_DATE&VarDesc=FlightDate&VarType=Char&VarName=UNIQUE_CARRIER&VarDesc=UniqueCarrier
+&VarType=Char&VarDesc=AirlineID&VarType=Num&VarDesc=Carrier&VarType=Char&VarName=TAIL_NUM&VarDesc=TailNum
+&VarType=Char&VarDesc=FlightNum&VarType=Char&VarDesc=OriginAirportID&VarType=Num&VarDesc=OriginAirportSeqID
+&VarType=Num&VarDesc=OriginCityMarketID&VarType=Num&VarName=ORIGIN&VarDesc=Origin&VarType=Char&VarDesc
+=OriginCityName&VarType=Char&VarDesc=OriginState&VarType=Char&VarDesc=OriginStateFips&VarType=Char&VarDesc
+=OriginStateName&VarType=Char&VarDesc=OriginWac&VarType=Num&VarDesc=DestAirportID&VarType=Num&VarDesc
+=DestAirportSeqID&VarType=Num&VarDesc=DestCityMarketID&VarType=Num&VarName=DEST&VarDesc=Dest&VarType
+=Char&VarDesc=DestCityName&VarType=Char&VarDesc=DestState&VarType=Char&VarDesc=DestStateFips&VarType
+=Char&VarDesc=DestStateName&VarType=Char&VarDesc=DestWac&VarType=Num&VarDesc=CRSDepTime&VarType=Char
+&VarName=DEP_TIME&VarDesc=DepTime&VarType=Char&VarDesc=DepDelay&VarType=Num&VarName=DEP_DELAY_NEW&VarDesc
+=DepDelayMinutes&VarType=Num&VarDesc=DepDel15&VarType=Num&VarDesc=DepartureDelayGroups&VarType=Num&VarName
+=DEP_TIME_BLK&VarDesc=DepTimeBlk&VarType=Char&VarDesc=TaxiOut&VarType=Num&VarDesc=WheelsOff&VarType=Char
+&VarDesc=WheelsOn&VarType=Char&VarDesc=TaxiIn&VarType=Num&VarName=CRS_ARR_TIME&VarDesc=CRSArrTime&VarType
+=Char&VarName=ARR_TIME&VarDesc=ArrTime&VarType=Char&VarDesc=ArrDelay&VarType=Num&VarName=ARR_DELAY_NEW
+&VarDesc=ArrDelayMinutes&VarType=Num&VarDesc=ArrDel15&VarType=Num&VarDesc=ArrivalDelayGroups&VarType
+=Num&VarName=ARR_TIME_BLK&VarDesc=ArrTimeBlk&VarType=Char&VarName=CANCELLED&VarDesc=Cancelled&VarType
+=Num&VarDesc=CancellationCode&VarType=Char&VarName=DIVERTED&VarDesc=Diverted&VarType=Num&VarDesc=CRSElapsedTime
+&VarType=Num&VarDesc=ActualElapsedTime&VarType=Num&VarName=AIR_TIME&VarDesc=AirTime&VarType=Num&VarDesc
+=Flights&VarType=Num&VarName=DISTANCE&VarDesc=Distance&VarType=Num&VarDesc=DistanceGroup&VarType=Num
+&VarName=CARRIER_DELAY&VarDesc=CarrierDelay&VarType=Num&VarName=WEATHER_DELAY&VarDesc=WeatherDelay&VarType
+=Num&VarName=NAS_DELAY&VarDesc=NASDelay&VarType=Num&VarName=SECURITY_DELAY&VarDesc=SecurityDelay&VarType
+=Num&VarName=LATE_AIRCRAFT_DELAY&VarDesc=LateAircraftDelay&VarType=Num&VarDesc=FirstDepTime&VarType=Char
+&VarDesc=TotalAddGTime&VarType=Num&VarDesc=LongestAddGTime&VarType=Num&VarDesc=DivAirportLandings&VarType
+=Num&VarDesc=DivReachedDest&VarType=Num&VarDesc=DivActualElapsedTime&VarType=Num&VarDesc=DivArrDelay
+&VarType=Num&VarDesc=DivDistance&VarType=Num&VarDesc=Div1Airport&VarType=Char&VarDesc=Div1AirportID&VarType
+=Num&VarDesc=Div1AirportSeqID&VarType=Num&VarDesc=Div1WheelsOn&VarType=Char&VarDesc=Div1TotalGTime&VarType
+=Num&VarDesc=Div1LongestGTime&VarType=Num&VarDesc=Div1WheelsOff&VarType=Char&VarDesc=Div1TailNum&VarType
+=Char&VarDesc=Div2Airport&VarType=Char&VarDesc=Div2AirportID&VarType=Num&VarDesc=Div2AirportSeqID&VarType
+=Num&VarDesc=Div2WheelsOn&VarType=Char&VarDesc=Div2TotalGTime&VarType=Num&VarDesc=Div2LongestGTime&VarType
+=Num&VarDesc=Div2WheelsOff&VarType=Char&VarDesc=Div2TailNum&VarType=Char&VarDesc=Div3Airport&VarType
+=Char&VarDesc=Div3AirportID&VarType=Num&VarDesc=Div3AirportSeqID&VarType=Num&VarDesc=Div3WheelsOn&VarType
+=Char&VarDesc=Div3TotalGTime&VarType=Num&VarDesc=Div3LongestGTime&VarType=Num&VarDesc=Div3WheelsOff&VarType
+=Char&VarDesc=Div3TailNum&VarType=Char&VarDesc=Div4Airport&VarType=Char&VarDesc=Div4AirportID&VarType
+=Num&VarDesc=Div4AirportSeqID&VarType=Num&VarDesc=Div4WheelsOn&VarType=Char&VarDesc=Div4TotalGTime&VarType
+=Num&VarDesc=Div4LongestGTime&VarType=Num&VarDesc=Div4WheelsOff&VarType=Char&VarDesc=Div4TailNum&VarType
+=Char&VarDesc=Div5Airport&VarType=Char&VarDesc=Div5AirportID&VarType=Num&VarDesc=Div5AirportSeqID&VarType
+=Num&VarDesc=Div5WheelsOn&VarType=Char&VarDesc=Div5TotalGTime&VarType=Num&VarDesc=Div5LongestGTime&VarType
+=Num&VarDesc=Div5WheelsOff&VarType=Char&VarDesc=Div5TailNum&VarType=Char'''
 
 DB1BMARKETS_POST='''UserTableName=DB1BMarket&DBShortName=Origin_and_Destination_Survey&RawDataTable=T_DB1B_MARKET&sqlstr
 =+SELECT+ITIN_ID%2CMKT_ID%2CMARKET_COUPONS%2CYEAR%2CQUARTER%2CORIGIN_AIRPORT_ID%2CORIGIN_AIRPORT_SEQ_ID
@@ -181,7 +230,7 @@ DB1BCOUPONS_POST='''UserTableName=DB1BCoupon&DBShortName=&RawDataTable=T_DB1B_CO
 #post_data is htlm form data for requests
 #post_vars is a dictionary of associated variabls to replace     
 #outdir is directory to save files to
-def bts_table_request(url,post_data,post_vars,outfile,outdir):
+def bts_table_request(url,post_data,post_vars,outfile,data_dir):
     #assign content type
     headers = {
         "Content-Type" : "application/x-www-form-urlencoded",
@@ -200,8 +249,8 @@ def bts_table_request(url,post_data,post_vars,outfile,outdir):
         #exctract csv file from returned bytecode, save in appropriate directory
         for filename in z.namelist():
             if filename.split('.')[-1] =='csv':
-                z.extract(filename,outdir)
-                os.rename(outdir + filename, outdir + outfile)
+                z.extract(filename,data_dir)
+                os.rename(data_dir + filename, data_dir + outfile)
         #just to prevent BTS from getting mad
         time.sleep(.5)
     except:
@@ -253,26 +302,30 @@ def DB1BCoupons_download(post=DB1BCOUPONS_POST,years = [2007], quarters=list(ran
 
   
 
-def aotp_download(post=AOTP_POST,years = [2007], months=list(range(1,13)), data_dir='C:/users/d29905p/Documents/longitudinal_airline_network/'):
+def aotp_download(post=AOTP_POST_CS,years = [2007,2008], months=list(range(1,13)), data_dir='C:/Users/d29905P/Documents/airdelay/', root_filename = 'AOTP_CS'):
     '''    
     https://github.com/isaacobezo/get_rita/blob/master/get_transtat_data.py
     https://public.tableau.com/s/blog/2013/08/data-scraping-part-iii-python
     http://docs.python-requests.org/en/latest/user/quickstart/
     '''    
+    url='http://www.transtats.bts.gov/DownLoad_Table.asp?Table_ID=236&Has_Group=0&Is_Zipped=0'
     months_str = ['January','February','March','April','May','June','July','August','September','October','November','December']
-    headers = {
-        "Content-Type" : "application/x-www-form-urlencoded",
-        }    
+    #headers = {
+     #   "Content-Type" : "application/x-www-form-urlencoded",
+      #  }    
     ######base_url = PUT AOTP BASE HERE
     for year in years:
         for month in months:
+            month_str = months_str[month-1]
+            year = str(year)
             ########request variables           
-            post_vars={'year':year,'month':month,frequency:str(1)} 
-            print('downloading db1b coupons {year} Q{quarter}'.format(**post_vars))
-            outfile = root_filename+'_'+str(year)+'_Q'+str(quarter)+'.csv'
+            post_vars={'year':year,'month':month_str,'frequency':str(month)}
+            print(post_vars)
+            print('downloading aotp {year} {month}'.format(**post_vars))
+            outfile = root_filename+'_'+str(year)+'_'+str(month)+'.csv'
             post_data = post
             #make request
-            status = bts_table_request(url,post_data,post_vars,outfile,outdir)
+            status = bts_table_request(url,post_data,post_vars,outfile,data_dir)
             if status==1:
                 print('Done')
             else:
@@ -280,6 +333,7 @@ def aotp_download(post=AOTP_POST,years = [2007], months=list(range(1,13)), data_
             #NOT ACTUALLY SURE WHAT FREQUENCY DOES
             ##frequency=str(month)
             #string of month
+                '''
             month_str = months_str[month-1]
             year = str(year)
             #format post string
@@ -289,7 +343,7 @@ def aotp_download(post=AOTP_POST,years = [2007], months=list(range(1,13)), data_
            
     
             r = requests.post(base_url, data=data,headers=headers)
-
+            '''
 
     time.sleep(.5)
     
