@@ -18,6 +18,22 @@ old_graph = {
     8: [(8, 9),(8,7)],
     9: []}
 
+def connected_components(neighbors):
+        components = []
+        seen = set()
+        def component(node):
+            subgraph = []
+            nodes = set([node])
+            while nodes:
+                node = nodes.pop()
+                seen.add(node)
+                nodes |= neighbors[node] - seen
+                subgraph.append(node)
+            return list(set(subgraph))
+        for node in neighbors:
+            if node not in seen:
+                components.append(component(node)) 
+        return components
 
 
 def connected_components(neighbors):

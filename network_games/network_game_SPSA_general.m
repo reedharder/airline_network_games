@@ -1,20 +1,23 @@
 % Stochastic Optimization fitting: SPSA 
 
 %%%PART I: Load scenario carrier and market data
-SESSION_ID = 'ope2014_2';
+SESSION_ID = 'western2014';
 tic
 n=10000;
 cd('O:\Documents\airline_competition_paper\code\network_games')
 market_data_mat = csvread(sprintf('processed_data/SPSAdatamat_%s.csv',SESSION_ID),1,2);
 %fn_open = strcat('exp_files/carrier_data_basemod_reg1_2_0.0.txt');
 fn_open = strcat(sprintf('processed_data/carrier_data_%s.txt',SESSION_ID));
-outfile_fn = sprintf('exp_files/SPSA_results_fulleq_MAPE_%s.csv',SESSION_ID);
+outfile_fn = sprintf('exp_files/SPSA_results_fulleq_MAPE_%s_2noAS.csv',SESSION_ID);
 fid = fopen(fn_open,'r');
 %carrier fixing 
             %['AA','AS','MQ','OO','QX','UA','US','WN']
 %%fixed_carrier = [1   0    1    1    1    0    0    0];    
+%full 2014
               %['9E', 'AA', 'AS', 'B6', 'CP', 'DL', 'EV', 'F9', 'G7', 'MQ', 'NK', 'OH', 'OO', 'QX', 'RP', 'S5', 'SY', 'UA', 'US', 'VX', 'WN', 'YV', 'YX', 'ZW']
-fixed_carrier = [1     0     0     0     1     0     1      0     1     1     1     1     1     1     1     1     1    0      0     0    0     1      1     1];
+%fixed_carrier = [1     1     0     0     1     0     1      0     1     1     1     1     1     1     1     1     1    0      0     0    0     1      1     1];
+% west 2014      AA AS MQ  OO  QX  UA  US  VX WN   
+fixed_carrier = [1  1  1   1   1   0   0   0  0];
 %get number of carriers and markets
 tline = fgetl(fid);
 first_line = strsplit(tline);
@@ -97,6 +100,16 @@ end
     
 %set optimization parameters
 
+% good for 2007 west, 2014 full
+% %a=1.9;
+% a=100000; %a=600; %
+% c=20;
+% %c=20;
+% A=100; %A=100;
+% alpha=.602;
+% gamma=.101;
+
+% west 2014
 %a=1.9;
 a=100000; %a=600; %
 c=20;
@@ -104,7 +117,6 @@ c=20;
 A=100; %A=100;
 alpha=.602;
 gamma=.101;
-
 
 %base coefficients
 base_coef=[-150395.5496,-10106.6470,13135.9798,13136.1506,264.4822,-376.1793,-376.1781,270.2080,270.1927,-260.0113,...

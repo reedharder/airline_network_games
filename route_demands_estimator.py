@@ -260,3 +260,17 @@ def run():
     df_gpby = df.groupby(list(df.columns))
     idx = [x[0] for x in df_gpby.groups.values() if len(x) == 1]
     df =df.reindex(idx)
+    
+    #write a concatenated list of quarters
+    dflist = []
+    for q in range(1,5):
+        file = pd.read_csv(data_dir + 'route_demand_2014_Q%s.csv' % q)
+        file = file.fillna(value='--')
+        file = file.drop('Unnamed: 0',axis=1)
+        dflist.append(file) 
+    df = pd.concat(dflist)
+    df.MARKET_FARE = df.MARKET_FARE.round(decimals=2)
+    df.PASSENGERS = df.PASSENGERS.astype(int)
+    df['AVG_MARKET_FARE'] = df.MARKET_FARE
+    df = df.drop('MARKET_FARE',axis=1)
+    df.to_csv(data_dir + 'route_demand_2014.csv',index=False)

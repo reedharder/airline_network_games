@@ -35,10 +35,11 @@ except NameError:
 #airport sets    
 #HNL removed from ope35
 major_carriers_2014 = ['DL','WN','UA','US','AA','B6','NK','AS','F9','VX']
+major_carriers_west_2014 = ['WN','UA','US','AS','VX']
 ope35 = ['ATL', 'BOS', 'BWI', 'CLE', 'CLT', 'CVG', 'DCA', 'DEN', 'DFW', 'DTW', 'EWR', 'FLL', 'IAD', 'IAH', 'JFK', 'LAS', 'LAX', 'LGA', 'MCO', 'MDW', 'MEM', 'MIA', 'MSP', 'ORD', 'PDX', 'PHL', 'PHX', 'PIT', 'SAN', 'SEA', 'SFO', 'SLC', 'STL', 'TPA']
 western= ['SEA','PDX','SFO','SAN','LAX','LAS','PHX','OAK','ONT','SMF','SJC']
 
-def main_data_pipeline(year = 2014, quarters = [1], session_id="ope2014_2", parameter_file="parameters_default.txt", airport_network=ope35, major_carriers =major_carriers_2014):
+def main_data_pipeline(year = 2014, quarters = [1], session_id="western2014", parameter_file="parameters_default.txt", airport_network=western, major_carriers =major_carriers_west_2014):
     #parse parameters file, extract variables 
     variable_dict = parse_params(parameter_file,str_replacements={'%YEAR%':str(year),'%SESSION_ID%':session_id})
     
@@ -436,6 +437,11 @@ def create_fleet_assignments_graphwise(fleet_dist,fleet_lookup, major_carriers, 
         return components
 
     # create graph from
+
+
+
+
+
 
 ## helper function to create fleet assignments, based on heuristic algorithm
 #ADD COMMENTS! SEND PARAMETERS TO OUTER FUNCTION  AND THEN TO PARAMETER FILE!
