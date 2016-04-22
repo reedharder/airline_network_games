@@ -21,6 +21,7 @@ import pandas as pd
 from itertools import product
 import ast
 import pickle
+import  matplotlib.pyplot as plt
 
 try: 
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
@@ -34,12 +35,13 @@ except NameError:
 ### WHY random MISCODING OF RANK?
 #airport sets    
 #HNL removed from ope35
+session_id="western2014_q3"
 major_carriers_2014 = ['DL','WN','UA','US','AA','B6','NK','AS','F9','VX']
 major_carriers_west_2014 = ['WN','UA','US','AS','VX']
 ope35 = ['ATL', 'BOS', 'BWI', 'CLE', 'CLT', 'CVG', 'DCA', 'DEN', 'DFW', 'DTW', 'EWR', 'FLL', 'IAD', 'IAH', 'JFK', 'LAS', 'LAX', 'LGA', 'MCO', 'MDW', 'MEM', 'MIA', 'MSP', 'ORD', 'PDX', 'PHL', 'PHX', 'PIT', 'SAN', 'SEA', 'SFO', 'SLC', 'STL', 'TPA']
 western= ['SEA','PDX','SFO','SAN','LAX','LAS','PHX','OAK','ONT','SMF','SJC']
 
-def main_data_pipeline(year = 2014, quarters = [1], session_id="western2014", parameter_file="parameters_default.txt", airport_network=western, major_carriers =major_carriers_west_2014):
+def main_data_pipeline(year = 2014, quarters = [3], session_id="western2014_q3", parameter_file="parameters_default.txt", airport_network=western, major_carriers =major_carriers_west_2014):
     #parse parameters file, extract variables 
     variable_dict = parse_params(parameter_file,str_replacements={'%YEAR%':str(year),'%SESSION_ID%':session_id})
     
@@ -660,11 +662,11 @@ def create_network_game_datatable(outfile='processed_data/carrier_data_reg1_q1.t
     aug_fleet = pd.read_csv(fleet_dist_fn, sep=';') 
     t100ranked  = pd.read_csv(t100ranked_fn)
     #flgith times by airline market combo
-    aotp_mar = pd.read_csv(aotp_fn)
-    aotp_mar['BI_MARKET']=aotp_mar.apply(create_market,1) 
+    ##aotp_mar = pd.read_csv(aotp_fn)
+    ##aotp_mar['BI_MARKET']=aotp_mar.apply(create_market,1) 
     #NOTE: DISSAGREGGATE BY AIRCRAFT TYPE LATER
-    aotp_mar_times = aotp_mar[['UNIQUE_CARRIER','BI_MARKET','AIR_TIME']].groupby(['UNIQUE_CARRIER','BI_MARKET']).aggregate(lambda x: np.mean(x)/60)
-    aotp_mar_times = aotp_mar_times.reset_index().groupby(['UNIQUE_CARRIER','BI_MARKET'])
+    ##aotp_mar_times = aotp_mar[['UNIQUE_CARRIER','BI_MARKET','AIR_TIME']].groupby(['UNIQUE_CARRIER','BI_MARKET']).aggregate(lambda x: np.mean(x)/60)
+    ##aotp_mar_times = aotp_mar_times.reset_index().groupby(['UNIQUE_CARRIER','BI_MARKET'])
     #create input file for MATLAB based myopic best response network game
     with open(outfile,'w') as outfile:       
         # group competitive markets table by market
@@ -724,19 +726,19 @@ def create_network_game_datatable(outfile='processed_data/carrier_data_reg1_q1.t
                     #if market is relevant to current aircraft type, cell is 2(blockhours +turnaround_time)
                     if mk in mkts_for_craft:
                         #attempt to calculate the above from AOTP data
+                        ##try:
+                           ## block_hours=aotp_mar_times.get_group((carrier,mk))['AIR_TIME'].iloc[0]
+                        ##except KeyError: #if blackhours can't be found for specific carrier, take averaege accross carriers
+                        block_hours=float(t100_carrier_market.get_group((carrier,mk))['FLIGHT_TIME'])
+                        '''
                         try:
-                            block_hours=aotp_mar_times.get_group((carrier,mk))['AIR_TIME'].iloc[0]
-                        except KeyError: #if blackhours can't be found for specific carrier, take averaege accross carriers
-                            block_hours=float(t100_carrier_market.get_group((carrier,mk))['FLIGHT_TIME'])
-                            '''
-                            try:
-                                aotp_mar_times_avg =aotp_mar[['UNIQUE_CARRIER','BI_MARKET','AIR_TIME']].groupby(['UNIQUE_CARRIER','BI_MARKET']).aggregate(lambda x: np.mean(x)/60)
-                                aotp_mar_times_avg =aotp_mar_times_avg.reset_index().groupby(['BI_MARKET'])
-                                block_hours=aotp_mar_times_avg.get_group(mk)['AIR_TIME'].iloc[0]
-                            except KeyError: #if ONT time can't be found, approximate with LAX  GENERALIzE WITH TIMES FROM T!10000000
-                                ###mkk=mk.replace('ONT','LAX') 
-                                block_hours=2  #VERY APPROXIMATE!!  
-                            '''
+                            aotp_mar_times_avg =aotp_mar[['UNIQUE_CARRIER','BI_MARKET','AIR_TIME']].groupby(['UNIQUE_CARRIER','BI_MARKET']).aggregate(lambda x: np.mean(x)/60)
+                            aotp_mar_times_avg =aotp_mar_times_avg.reset_index().groupby(['BI_MARKET'])
+                            block_hours=aotp_mar_times_avg.get_group(mk)['AIR_TIME'].iloc[0]
+                        except KeyError: #if ONT time can't be found, approximate with LAX  GENERALIzE WITH TIMES FROM T!10000000
+                            ###mkk=mk.replace('ONT','LAX') 
+                            block_hours=2  #VERY APPROXIMATE!!  
+                        '''
                         a_row.append(2*(block_hours +45/60))
                     #otherwise, no constraint for this market
                     else:
@@ -835,30 +837,6 @@ def create_network_game_datatable(outfile='processed_data/carrier_data_reg1_q1.t
     
     
     
-'''
-function to divide coef_df from network game function into 3player, hub, 1player and other 2 player categories
-'''
-def experiment_categories_1(row):    
-    #create list of double-hubs for carriers
-    hub_sets = {'WN':['LAX','OAK','PHX','SAN','LAS'],'US':['LAS','PHX'],'UA':['LAX','SFO'],'AS':['SEA','LAX']}
-    hub_groups = []    
-    for carrier, hubs in hub_sets.items():
-        pairs =[sorted([pair[0],pair[1]]) for pair in product(hubs,hubs) if pair[0]!=pair[1] ]
-        txtpairs = list(set(["_".join(pair) for pair in pairs]))
-        carrier_hubs = [carrier + '_' + txtpair for txtpair in txtpairs ]
-        hub_groups += carrier_hubs       
-            
-    #first check if 3 player, assign to category (split WN and non WN)      
-    if int(row['competitors']) ==3:
-        cat = 1
-    elif row['carrier']+'_' +row['bimarket'] in hub_groups and int(row['competitors']) ==2:
-        cat = 2
-    elif int(row['competitors']) ==1:
-        cat = 4
-    else:
-        cat = 3
- 
-    return cat
 
 
             
@@ -910,7 +888,7 @@ def create_SPSA_datamat(t100ranked_fn = "processed_data/nonstop_competitive_mark
 '''
 function to build easily read data table from MATLAB output
 '''
-def create_results_table(outfile_fn='exp_files/SPSA_results_table_ope2014_2.csv',input_fn = "exp_files/SPSA_results_fulleq_MAPE_ope2014_2.csv",t100ranked_fn = "processed_data/nonstop_competitive_markets_mktmod_ope2014_2.csv"):
+def create_results_table(outfile_fn='exp_files/SPSA_results_table_%s_2noAS.csv' %  session_id,input_fn = "exp_files/SPSA_results_fulleq_MAPE_%s_2noAS.csv" %  session_id,t100ranked_fn = "processed_data/nonstop_competitive_markets_mktmod_%s.csv" %  session_id):
     #read in original market profile file    
     t100ranked  = pd.read_csv(t100ranked_fn) 
     #use subset of this as base for results table
@@ -974,6 +952,7 @@ def create_results_table(outfile_fn='exp_files/SPSA_results_table_ope2014_2.csv'
 
 def experiment_categories_2(row):    
     #create list of double-hubs for carriers
+    hub_sets_2007 = {'WN':['LAX','OAK','PHX','SAN','LAS'],'US':['LAS','PHX'],'UA':['LAX','SFO'],'AS':['SEA','LAX']}
     hub_sets = {'F9': ['DEN'], 'VX': ['LAX', 'SFO'], 'WN': ['MDW', 'BWI', 'DEN', 'LAS', 'PHX', 'STL', 'ATL', 'MCO', 'TPA', 'LAX', 'SAN'], 'AS': ['SEA', 'PDX', 'ORD', 'DFW', 'LAX', 'SAN', 'LAS', 'ATL'], 'UA': ['ORD', 'DEN', 'IAH', 'IAD', 'EWR', 'SFO', 'LAX', 'CLE'], 'US': ['CLT', 'PHL'], 'DL': ['ATL', 'MSP', 'DTW', 'SLC', 'JFK', 'LGA', 'LAX', 'CVG'], 'AA': ['DFW', 'ORD', 'MIA', 'LAX'], 'NK': ['FLL'], 'B6': ['JFK', 'BOS', 'MCO', 'FLL', 'TPA']}
     hub_groups = []    
     for carrier, hubs in hub_sets.items():
@@ -992,5 +971,94 @@ def experiment_categories_2(row):
     else:
         cat = 3
     return cat
-    
 
+
+
+
+
+
+
+
+
+
+#make scales dependent on max frequency!
+airlines2014 = ['AA', 'AS', 'CP','DL','MQ',  'OO',  'QX',  'UA',  'US',  'VX', 'WN' ,'YV']
+airlines2007 = ['AA','AS','MQ','OO','QX','UA','US','WN','HP']
+def t100_monthly_viz( merge_HP = True, basefn = '12month_ms-freq_', freq_cuttoff = 1, ms_cuttoff=.1, fs_cuttoff=.1, airports = ['SEA','PDX','SFO','SAN','LAX','LAS','PHX','OAK','ONT','SMF','SJC'],airlines = airlines2014,years = [2014], months=list(range(1,13))):
+    days_in_month = [31,28,31,30,31,30,31,31,30,31,30,31]
+    
+    def create_market(row):
+        market = [row['ORIGIN'], row['DEST']]
+        market.sort()
+        return "_".join(market)
+    for year in years:
+        t100_yr = pd.read_csv('bts_data/T100_%s.csv' % str(year))
+        if airlines:
+            t100_yr_network = t100_yr[t100_yr['ORIGIN'].isin(airports) & t100_yr['DEST'].isin(airports) & t100_yr['UNIQUE_CARRIER'].isin(airlines) ]
+        else:
+            t100_yr_network = t100_yr[t100_yr['ORIGIN'].isin(airports) & t100_yr['DEST'].isin(airports) ]
+            
+        t100_yr_network['BI_MARKET'] = t100_yr_network.apply(create_market,1)
+        if merge_HP:
+            t100_yr_network['UNIQUE_CARRIER']=t100_yr_network['UNIQUE_CARRIER'].replace('HP','US')
+        #sum between craft type
+        t100_yr_network_merge_mkt = t100_yr_network[['UNIQUE_CARRIER','BI_MARKET','MONTH','DEPARTURES_SCHEDULED','PASSENGERS','ORIGIN','DEST']].groupby(('UNIQUE_CARRIER','BI_MARKET','ORIGIN','DEST','MONTH')).aggregate(np.sum).reset_index()
+        #sum between craft type
+        t100_yr_network_merge_craft = t100_yr_network_merge_mkt[['UNIQUE_CARRIER','BI_MARKET','MONTH','DEPARTURES_SCHEDULED','PASSENGERS']].groupby(('UNIQUE_CARRIER','BI_MARKET','MONTH')).aggregate(np.mean).reset_index()        
+        t100_yr_network_merge_craft['DAILY_FREQ'] = t100_yr_network_merge_craft.apply(lambda row: row['DEPARTURES_SCHEDULED']/float(days_in_month[int(row['MONTH'])-1]),1)
+        t100_yr_network_merge_craft_freq_filt = t100_yr_network_merge_craft[t100_yr_network_merge_craft['DAILY_FREQ']>=freq_cuttoff]
+        #t100_yr_network_merge_craft_freq_filt
+        t100_grouped = t100_yr_network_merge_craft_freq_filt.groupby(('BI_MARKET','MONTH'))
+        grouplist = []
+        for market in list(set(t100_yr_network_merge_craft_freq_filt['BI_MARKET'].tolist())):
+            for month in range(1,13):
+                try:
+                    market_group = t100_grouped.get_group((market,month))
+                    new_group = market_rank(market_group, ms_cuttoff=ms_cuttoff, fs_cuttoff=fs_cuttoff)
+                    grouplist.append(new_group)
+                except KeyError:
+                    pass
+        t100ranked = pd.concat(grouplist,axis=0)
+    '''
+    add concatenation of multiple years later
+    '''
+   
+    #plot frequencies of major carriers in different markets over course of year as well as number of competitors (especially relelvant when we do a market share cuttoff)
+    t100markets = t100ranked.groupby('BI_MARKET')    
+    markets = list(set(t100ranked['BI_MARKET'].tolist()))  # WHY IS THIS DIFFERENT markets = list(set(t100_yr_network_merge_craft_freq_filt['BI_MARKET'].tolist())) 
+    for market in markets:
+        market_df = t100markets.get_group(market)    
+        plt.subplot(2,1,1)
+        plt.ylabel('Flights per Day')
+        for carrier in list(set(market_df['UNIQUE_CARRIER'].tolist())):
+            carrier_gb = market_df[market_df['UNIQUE_CARRIER']==carrier].set_index('MONTH')
+            carrier_vector = []
+            for i in range(1,13):
+                try:
+                    carrier_vector.append(float(carrier_gb.loc[i]['DAILY_FREQ']))
+                except KeyError:
+                    carrier_vector.append(0.0)
+            plt.plot(list(range(1,13)),carrier_vector, label=carrier)
+        plt.legend(shadow=True, loc=3,fancybox=True)   
+        plt.title('Frequency Competition in %s Market, %s' % (market, year))
+        #plt.show()
+        #ADD MARKET COMPETITOR MARKER?? SEARCH FOR ENTRIES
+        plt.axis([1, 12, 0, 22])
+        plt.subplot(2,1,2)
+        plt.ylabel('Mkt Share')
+        plt.xlabel('time (months)')
+        plt.axis([1, 12, 0, 1.1])
+        for carrier in list(set(market_df['UNIQUE_CARRIER'].tolist())):
+            carrier_gb = market_df[market_df['UNIQUE_CARRIER']==carrier].set_index('MONTH')
+            carrier_vector = []
+            for i in range(1,13):
+                try:
+                    carrier_vector.append(float(carrier_gb.loc[i]['MS_TOT']))
+                except KeyError:
+                    carrier_vector.append(0.0)
+            plt.plot(list(range(1,13)),carrier_vector, label=carrier)
+        #plt.legend(shadow=True, loc=2,fancybox=True)       
+        
+        plt.savefig('t100_%s_pics/%s_%s.jpg' % (year,basefn, market))
+        plt.clf()
+            

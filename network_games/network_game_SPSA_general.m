@@ -1,7 +1,7 @@
 % Stochastic Optimization fitting: SPSA 
 
 %%%PART I: Load scenario carrier and market data
-SESSION_ID = 'western2014';
+SESSION_ID = 'western2014_q3';
 tic
 n=10000;
 cd('O:\Documents\airline_competition_paper\code\network_games')
@@ -16,8 +16,11 @@ fid = fopen(fn_open,'r');
 %full 2014
               %['9E', 'AA', 'AS', 'B6', 'CP', 'DL', 'EV', 'F9', 'G7', 'MQ', 'NK', 'OH', 'OO', 'QX', 'RP', 'S5', 'SY', 'UA', 'US', 'VX', 'WN', 'YV', 'YX', 'ZW']
 %fixed_carrier = [1     1     0     0     1     0     1      0     1     1     1     1     1     1     1     1     1    0      0     0    0     1      1     1];
-% west 2014      AA AS MQ  OO  QX  UA  US  VX WN   
-fixed_carrier = [1  1  1   1   1   0   0   0  0];
+% west 2014 Q1     AA AS MQ  OO  QX  UA  US  VX WN   
+%fixed_carrier = [1  1  1   1   1   0   0   0  0];
+
+% west 2014 Q3    AS CP DL  OO  QX  UA  US  VX WN   YN
+fixed_carrier =  [1  1  1   1   1   0   0   0  0    1];
 %get number of carriers and markets
 tline = fgetl(fid);
 first_line = strsplit(tline);
@@ -174,6 +177,8 @@ for k=0:n-1
     end
     
 end
+
+best_theta =    1.0e+04 *    [-2.0532,     0.0980,    0.0600,   -1.3927,    0.0584,    0.0707,   -2.2645,    0.1120,    0.0918,   -3.4868,    0.1909]';
 toc
 final_loss=network_game_loss_quadratic(best_theta,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,1,MAPE_incl,outfile_fn);
 toc

@@ -1,6 +1,6 @@
 ##general parameters
 #quarters to consider
-quarters = [1]
+quarters = [3]
 #merge HP and UA data (assume they are suffieciently allied)
 merge_HP = True
 #specific markets to ignore in airport network

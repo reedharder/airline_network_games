@@ -127,7 +127,7 @@ AOTP_POST_CS = '''UserTableName=On_Time_Performance&DBShortName=On_Time&RawDataT
 %2CMONTH%2CDAY_OF_MONTH%2CDAY_OF_WEEK%2CFL_DATE%2CUNIQUE_CARRIER%2CTAIL_NUM%2CORIGIN%2CDEST%2CDEP_TIME
 %2CDEP_DELAY_NEW%2CDEP_TIME_BLK%2CCRS_ARR_TIME%2CARR_TIME%2CARR_DELAY_NEW%2CARR_TIME_BLK%2CCANCELLED
 %2CDIVERTED%2CAIR_TIME%2CDISTANCE%2CCARRIER_DELAY%2CWEATHER_DELAY%2CNAS_DELAY%2CSECURITY_DELAY%2CLATE_AIRCRAFT_DELAY
-+FROM++T_ONTIME+WHERE+Month+%3D1+AND+YEAR%3D2007&varlist=YEAR%2CQUARTER%2CMONTH%2CDAY_OF_MONTH%2CDAY_OF_WEEK
++FROM++T_ONTIME+WHERE+Month+%3D{month}+AND+YEAR%3D{year}&varlist=YEAR%2CQUARTER%2CMONTH%2CDAY_OF_MONTH%2CDAY_OF_WEEK
 %2CFL_DATE%2CUNIQUE_CARRIER%2CTAIL_NUM%2CORIGIN%2CDEST%2CDEP_TIME%2CDEP_DELAY_NEW%2CDEP_TIME_BLK%2CCRS_ARR_TIME
 %2CARR_TIME%2CARR_DELAY_NEW%2CARR_TIME_BLK%2CCANCELLED%2CDIVERTED%2CAIR_TIME%2CDISTANCE%2CCARRIER_DELAY
 %2CWEATHER_DELAY%2CNAS_DELAY%2CSECURITY_DELAY%2CLATE_AIRCRAFT_DELAY&grouplist=&suml=&sumRegion=&filter1
@@ -301,7 +301,7 @@ def DB1BCoupons_download(post=DB1BCOUPONS_POST,years = [2007], quarters=list(ran
     
 
   
-
+### CURRENTLY MESSED UP, DOWNLOADS YEAR/MONTH BADY, TEST A 2-13 output
 def aotp_download(post=AOTP_POST_CS,years = [2007,2008], months=list(range(1,13)), data_dir='C:/Users/d29905P/Documents/airdelay/', root_filename = 'AOTP_CS'):
     '''    
     https://github.com/isaacobezo/get_rita/blob/master/get_transtat_data.py
@@ -319,7 +319,7 @@ def aotp_download(post=AOTP_POST_CS,years = [2007,2008], months=list(range(1,13)
             month_str = months_str[month-1]
             year = str(year)
             ########request variables           
-            post_vars={'year':year,'month':month_str,'frequency':str(month)}
+            post_vars={'year':year,'month':month_str,'frequency':"1"}
             print(post_vars)
             print('downloading aotp {year} {month}'.format(**post_vars))
             outfile = root_filename+'_'+str(year)+'_'+str(month)+'.csv'
