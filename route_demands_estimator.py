@@ -207,26 +207,31 @@ def create_route_demands_quarter2(year =2014, quarter=1, filter_null_fares=False
     
 
 def run():
-    for quarter in [2,3,4]:
-        year =2014
-        data_dir = 'C:/users/d29905p/Documents/airline_competition_paper/code/network_games/bts_data/'
-        outfile = 'route_demand_{year}_Q{quarter}.csv'
-        outfile  = outfile.format(year=year, quarter=quarter)
-        merge_df = pd.read_csv(data_dir + "leg_file_" + outfile)# dtype={'YEAR':int,'QUARTER':int,'PASSENGERS':int,'NUM_FLIGHTS':int, 'MARKET_FARE':float})
-        merge_df[['YEAR','QUARTER', 'NUM_FLIGHTS']] = merge_df[['YEAR','QUARTER', 'NUM_FLIGHTS']].astype(int) 
-        merge_df[['MARKET_FARE','PASSENGERS']] =  merge_df[['MARKET_FARE','PASSENGERS']].astype(float)
-        def wavg(group):
-                d = group['MARKET_FARE']
-                w = group['PASSENGERS']
-                return pd.DataFrame([{'PASSENGERS': w.sum(), 'MARKET_FARE': (d * w).sum() / w.sum()}])
-        merge_df = merge_df.fillna('NotANumber')
-        merge_df = merge_df.groupby(['YEAR','QUARTER','NUM_FLIGHTS','ORIGIN','CONNECTION','DESTINATION','FIRST_OPERATING_CARRIER','SECOND_OPERATING_CARRIER']).apply(wavg).reset_index()
-        #FOR NOW...
-        merge_df = merge_df.drop('level_8',1)
-        ##merge_df['PASSENGERS']=merge_df['PASSENGERS']*10 
-        merge_df = merge_df.replace('NotANumber','')
-        merge_df.to_csv(data_dir + outfile)
-        ###m = create_route_demands_quarter2(year =2014, quarter=q)
+    for year in [2013,2012,2011]:
+        for quarter in [1,2,3,4]:    
+            m=create_route_demands_quarter2(year=year,quarter=quarter)
+    
+    for year in [2013]:
+        for quarter in [1,2,3,4]:
+            
+            data_dir = 'C:/users/d29905p/Documents/airline_competition_paper/code/network_games/bts_data/'
+            outfile = 'route_demand_{year}_Q{quarter}.csv'
+            outfile  = outfile.format(year=year, quarter=quarter)
+            merge_df = pd.read_csv(data_dir + "leg_file_" + outfile)# dtype={'YEAR':int,'QUARTER':int,'PASSENGERS':int,'NUM_FLIGHTS':int, 'MARKET_FARE':float})
+            merge_df[['YEAR','QUARTER', 'NUM_FLIGHTS']] = merge_df[['YEAR','QUARTER', 'NUM_FLIGHTS']].astype(int) 
+            merge_df[['MARKET_FARE','PASSENGERS']] =  merge_df[['MARKET_FARE','PASSENGERS']].astype(float)
+            def wavg(group):
+                    d = group['MARKET_FARE']
+                    w = group['PASSENGERS']
+                    return pd.DataFrame([{'PASSENGERS': w.sum(), 'MARKET_FARE': (d * w).sum() / w.sum()}])
+            merge_df = merge_df.fillna('NotANumber')
+            merge_df = merge_df.groupby(['YEAR','QUARTER','NUM_FLIGHTS','ORIGIN','CONNECTION','DESTINATION','FIRST_OPERATING_CARRIER','SECOND_OPERATING_CARRIER']).apply(wavg).reset_index()
+            #FOR NOW...
+            merge_df = merge_df.drop('level_8',1)
+            ##merge_df['PASSENGERS']=merge_df['PASSENGERS']*10 
+            merge_df = merge_df.replace('NotANumber','')
+            merge_df.to_csv(data_dir + outfile)
+            ###m = create_route_demands_quarter2(year =2014, quarter=q)
     
     quarter =1
     year =2014

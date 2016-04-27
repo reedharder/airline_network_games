@@ -47,7 +47,7 @@ def main_data_pipeline(year = 2014, quarters = [3], session_id="western2014_q3",
     
     #create t100ranked file and supplementary data files (primary data on carrier-segment combos)
     print("creating carrier-segment data files...")
-    t100ranked = nonstop_market_profile(output_file = variable_dict['t100ranked_output_fn'],aotp_fn = variable_dict['aotp_fn'], quarters=variable_dict['quarters'], \
+    t100ranked = nonstop_market_profile(output_file = variable_dict['t100ranked_output_fn'],aotp_fn = variable_dict['aotp_fn'], quarters=quarters, \
         t100_fn=variable_dict['t100_fn'],p52_fn=variable_dict['p52_fn'], t100_avgd_fn=variable_dict['t100_avgd_fn'], merge_HP=variable_dict['merge_HP'], \
         t100_summed_fn = variable_dict['t100_summed_fn'], t100_craft_avg_fn=variable_dict['t100_craft_avg_fn'],\
         ignore_mkts  = variable_dict['ignore_mkts'],\
@@ -984,7 +984,7 @@ def experiment_categories_2(row):
 #make scales dependent on max frequency!
 airlines2014 = ['AA', 'AS', 'CP','DL','MQ',  'OO',  'QX',  'UA',  'US',  'VX', 'WN' ,'YV']
 airlines2007 = ['AA','AS','MQ','OO','QX','UA','US','WN','HP']
-def t100_monthly_viz( merge_HP = True, basefn = '12month_ms-freq_', freq_cuttoff = 1, ms_cuttoff=.1, fs_cuttoff=.1, airports = ['SEA','PDX','SFO','SAN','LAX','LAS','PHX','OAK','ONT','SMF','SJC'],airlines = airlines2014,years = [2014], months=list(range(1,13))):
+def t100_monthly_viz( outdir = "C:/Users/d29905p/documents/airline_competition_paper/code/network_games/", merge_HP = True, basefn = '12month_ms-freq_', freq_cuttoff = 1, ms_cuttoff=.1, fs_cuttoff=.1, airports = ['SEA','PDX','SFO','SAN','LAX','LAS','PHX','OAK','ONT','SMF','SJC'],airlines = airlines2014,years = [2014], months=list(range(1,13))):
     days_in_month = [31,28,31,30,31,30,31,31,30,31,30,31]
     
     def create_market(row):
@@ -1059,6 +1059,12 @@ def t100_monthly_viz( merge_HP = True, basefn = '12month_ms-freq_', freq_cuttoff
             plt.plot(list(range(1,13)),carrier_vector, label=carrier)
         #plt.legend(shadow=True, loc=2,fancybox=True)       
         
-        plt.savefig('t100_%s_pics/%s_%s.jpg' % (year,basefn, market))
+        plt.savefig(outdir + 't100_%s_pics/%s_%s.jpg' % (year,basefn, market))
         plt.clf()
+        
+        
+'''
+for q in [1,2,3]:
+    K=main_data_pipeline(year=2013, quarters = [q], session_id = "western2013_q%s" % q)
+'''
             

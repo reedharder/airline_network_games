@@ -23,7 +23,8 @@ MISS_DICT_2007 = {'B747-1': 'B747-100',
  
  
 type1=pd.read_csv(datadir+"bts_data/AIRCRAFT_TYPE_LOOKUP.csv")
-b43 = pd.read_csv(datadir+"bts_data/SCHEDULE_B43_FULL.txt")
+b43 = pd.read_csv(datadir+"bts_data/SCHEDULE_B43_2007.txt")
+b43_13 = pd.read_csv(datadir+"bts_data/SCHEDULE_B43_2013.csv")
 b43_14 = pd.read_csv(datadir+"bts_data/SCHEDULE_B43_2014.csv")
 
 k=[m for m in b43.MODEL.value_counts().keys() if m not in type1.SHORT_NAME.tolist()]
@@ -91,10 +92,10 @@ def estimate_shortname():
 '''
 function to get find shortname from tail number correspondences with earlier schedule B-43
 '''
-
+'''
 def shortname_from_tailnum(row,schedule=b43_base):
     pass
-    
+    '''
 
 def get_ac_typeid(correspondence_fn=datadir+"processed_data/b43_type_id_correspondence.csv",new_b43_fn = datadir+"bts_data/SCHEDULE_B43_2014.csv",base_b43_fn=datadir+"bts_data/SCHEDULE_B43_FULL_2007.txt"):
     correspondence_table  = pd.read_csv(correspondence_fn).set_index('MODEL')
@@ -185,5 +186,6 @@ def get_ac_typeid(correspondence_fn=datadir+"processed_data/b43_type_id_correspo
 
 
     
-    
-    
+import pickle    
+def func_to_backfit_planetypes():
+    k=pickle.load(open('bts_data/ac_lookup_dict_2014.pickle','rb'))
