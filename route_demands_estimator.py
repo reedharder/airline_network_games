@@ -207,7 +207,7 @@ def create_route_demands_quarter2(year =2014, quarter=1, filter_null_fares=False
     
 
 def run():
-    for year in [2013,2012,2011]:
+    for year in [2012,2011]:
         for quarter in [1,2,3,4]:    
             m=create_route_demands_quarter2(year=year,quarter=quarter)
     

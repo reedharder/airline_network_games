@@ -1066,5 +1066,16 @@ def t100_monthly_viz( outdir = "C:/Users/d29905p/documents/airline_competition_p
 '''
 for q in [1,2,3]:
     K=main_data_pipeline(year=2013, quarters = [q], session_id = "western2013_q%s" % q)
+
+
+#plot results table 
+ct = rt[rt.UNIQUE_CARRIER.isin(['WN','UA','VX','US'])]
+plt.scatter(ct.DAILY_FREQ, ct.EST_FREQ)
+plt.xlabel('Actual Frequency')
+plt.ylabel('Predicted Frequency')
+plt.grid(True)
+plt.plot([0,20],[0,20])
+plt.xlim([0,15])
+plt.ylim([0,15])
 '''
             
