@@ -123,7 +123,7 @@ AOTP_POST='''UserTableName=On_Time_Performance&DBShortName=On_Time&RawDataTable=
 &VarType=Char&VarDesc=Div5TotalGTime&VarType=Num&VarDesc=Div5LongestGTime&VarType=Num&VarDesc=Div5WheelsOff
 &VarType=Char&VarDesc=Div5TailNum&VarType=Char'''
 
-AOTP_POST_CS = '''UserTableName=On_Time_Performance&DBShortName=On_Time&RawDataTable=T_ONTIME&sqlstr=+SELECT+YEAR%2CQUARTER
+AOTP_POST_CS_OLD = '''UserTableName=On_Time_Performance&DBShortName=On_Time&RawDataTable=T_ONTIME&sqlstr=+SELECT+YEAR%2CQUARTER
 %2CMONTH%2CDAY_OF_MONTH%2CDAY_OF_WEEK%2CFL_DATE%2CUNIQUE_CARRIER%2CTAIL_NUM%2CORIGIN%2CDEST%2CDEP_TIME
 %2CDEP_DELAY_NEW%2CDEP_TIME_BLK%2CCRS_ARR_TIME%2CARR_TIME%2CARR_DELAY_NEW%2CARR_TIME_BLK%2CCANCELLED
 %2CDIVERTED%2CAIR_TIME%2CDISTANCE%2CCARRIER_DELAY%2CWEATHER_DELAY%2CNAS_DELAY%2CSECURITY_DELAY%2CLATE_AIRCRAFT_DELAY
@@ -172,6 +172,61 @@ AOTP_POST_CS = '''UserTableName=On_Time_Performance&DBShortName=On_Time&RawDataT
 =Char&VarDesc=Div5Airport&VarType=Char&VarDesc=Div5AirportID&VarType=Num&VarDesc=Div5AirportSeqID&VarType
 =Num&VarDesc=Div5WheelsOn&VarType=Char&VarDesc=Div5TotalGTime&VarType=Num&VarDesc=Div5LongestGTime&VarType
 =Num&VarDesc=Div5WheelsOff&VarType=Char&VarDesc=Div5TailNum&VarType=Char'''
+
+
+AOTP_POST_CS = '''UserTableName=On_Time_Performance&DBShortName=On_Time&RawDataTable=T_ONTIME&sqlstr=+SELECT+YEAR%2CQUARTER
+%2CMONTH%2CDAY_OF_MONTH%2CDAY_OF_WEEK%2CFL_DATE%2CUNIQUE_CARRIER%2CAIRLINE_ID%2CTAIL_NUM%2CFL_NUM%2CORIGIN_AIRPORT_ID
+%2CORIGIN_AIRPORT_SEQ_ID%2CORIGIN_CITY_MARKET_ID%2CORIGIN%2CDEST_AIRPORT_ID%2CDEST_AIRPORT_SEQ_ID%2CDEST_CITY_MARKET_ID
+%2CDEST%2CCRS_DEP_TIME%2CDEP_TIME%2CDEP_DELAY%2CCRS_ARR_TIME%2CARR_TIME%2CARR_DELAY%2CCANCELLED%2CDIVERTED
+%2CAIR_TIME%2CFLIGHTS%2CDISTANCE%2CCARRIER_DELAY%2CWEATHER_DELAY%2CNAS_DELAY%2CSECURITY_DELAY%2CLATE_AIRCRAFT_DELAY
++FROM++T_ONTIME+WHERE+Month+%3D{month_num}+AND+YEAR%3D{year}&varlist=YEAR%2CQUARTER%2CMONTH%2CDAY_OF_MONTH%2CDAY_OF_WEEK
+%2CFL_DATE%2CUNIQUE_CARRIER%2CAIRLINE_ID%2CTAIL_NUM%2CFL_NUM%2CORIGIN_AIRPORT_ID%2CORIGIN_AIRPORT_SEQ_ID
+%2CORIGIN_CITY_MARKET_ID%2CORIGIN%2CDEST_AIRPORT_ID%2CDEST_AIRPORT_SEQ_ID%2CDEST_CITY_MARKET_ID%2CDEST
+%2CCRS_DEP_TIME%2CDEP_TIME%2CDEP_DELAY%2CCRS_ARR_TIME%2CARR_TIME%2CARR_DELAY%2CCANCELLED%2CDIVERTED%2CAIR_TIME
+%2CFLIGHTS%2CDISTANCE%2CCARRIER_DELAY%2CWEATHER_DELAY%2CNAS_DELAY%2CSECURITY_DELAY%2CLATE_AIRCRAFT_DELAY
+&grouplist=&suml=&sumRegion=&filter1=title%3D&filter2=title%3D&geo=All%A0&time={month}&timename=Month
+&GEOGRAPHY=All&XYEAR={year}&FREQUENCY={frequency}&VarName=YEAR&VarDesc=Year&VarType=Num&VarName=QUARTER&VarDesc=Quarter
+&VarType=Num&VarName=MONTH&VarDesc=Month&VarType=Num&VarName=DAY_OF_MONTH&VarDesc=DayofMonth&VarType
+=Num&VarName=DAY_OF_WEEK&VarDesc=DayOfWeek&VarType=Num&VarName=FL_DATE&VarDesc=FlightDate&VarType=Char
+&VarName=UNIQUE_CARRIER&VarDesc=UniqueCarrier&VarType=Char&VarName=AIRLINE_ID&VarDesc=AirlineID&VarType
+=Num&VarDesc=Carrier&VarType=Char&VarName=TAIL_NUM&VarDesc=TailNum&VarType=Char&VarName=FL_NUM&VarDesc
+=FlightNum&VarType=Char&VarName=ORIGIN_AIRPORT_ID&VarDesc=OriginAirportID&VarType=Num&VarName=ORIGIN_AIRPORT_SEQ_ID
+&VarDesc=OriginAirportSeqID&VarType=Num&VarName=ORIGIN_CITY_MARKET_ID&VarDesc=OriginCityMarketID&VarType
+=Num&VarName=ORIGIN&VarDesc=Origin&VarType=Char&VarDesc=OriginCityName&VarType=Char&VarDesc=OriginState
+&VarType=Char&VarDesc=OriginStateFips&VarType=Char&VarDesc=OriginStateName&VarType=Char&VarDesc=OriginWac
+&VarType=Num&VarName=DEST_AIRPORT_ID&VarDesc=DestAirportID&VarType=Num&VarName=DEST_AIRPORT_SEQ_ID&VarDesc
+=DestAirportSeqID&VarType=Num&VarName=DEST_CITY_MARKET_ID&VarDesc=DestCityMarketID&VarType=Num&VarName
+=DEST&VarDesc=Dest&VarType=Char&VarDesc=DestCityName&VarType=Char&VarDesc=DestState&VarType=Char&VarDesc
+=DestStateFips&VarType=Char&VarDesc=DestStateName&VarType=Char&VarDesc=DestWac&VarType=Num&VarName=CRS_DEP_TIME
+&VarDesc=CRSDepTime&VarType=Char&VarName=DEP_TIME&VarDesc=DepTime&VarType=Char&VarName=DEP_DELAY&VarDesc
+=DepDelay&VarType=Num&VarDesc=DepDelayMinutes&VarType=Num&VarDesc=DepDel15&VarType=Num&VarDesc=DepartureDelayGroups
+&VarType=Num&VarDesc=DepTimeBlk&VarType=Char&VarDesc=TaxiOut&VarType=Num&VarDesc=WheelsOff&VarType=Char
+&VarDesc=WheelsOn&VarType=Char&VarDesc=TaxiIn&VarType=Num&VarName=CRS_ARR_TIME&VarDesc=CRSArrTime&VarType
+=Char&VarName=ARR_TIME&VarDesc=ArrTime&VarType=Char&VarName=ARR_DELAY&VarDesc=ArrDelay&VarType=Num&VarDesc
+=ArrDelayMinutes&VarType=Num&VarDesc=ArrDel15&VarType=Num&VarDesc=ArrivalDelayGroups&VarType=Num&VarDesc
+=ArrTimeBlk&VarType=Char&VarName=CANCELLED&VarDesc=Cancelled&VarType=Num&VarDesc=CancellationCode&VarType
+=Char&VarName=DIVERTED&VarDesc=Diverted&VarType=Num&VarDesc=CRSElapsedTime&VarType=Num&VarDesc=ActualElapsedTime
+&VarType=Num&VarName=AIR_TIME&VarDesc=AirTime&VarType=Num&VarName=FLIGHTS&VarDesc=Flights&VarType=Num
+&VarName=DISTANCE&VarDesc=Distance&VarType=Num&VarDesc=DistanceGroup&VarType=Num&VarName=CARRIER_DELAY
+&VarDesc=CarrierDelay&VarType=Num&VarName=WEATHER_DELAY&VarDesc=WeatherDelay&VarType=Num&VarName=NAS_DELAY
+&VarDesc=NASDelay&VarType=Num&VarName=SECURITY_DELAY&VarDesc=SecurityDelay&VarType=Num&VarName=LATE_AIRCRAFT_DELAY
+&VarDesc=LateAircraftDelay&VarType=Num&VarDesc=FirstDepTime&VarType=Char&VarDesc=TotalAddGTime&VarType
+=Num&VarDesc=LongestAddGTime&VarType=Num&VarDesc=DivAirportLandings&VarType=Num&VarDesc=DivReachedDest
+&VarType=Num&VarDesc=DivActualElapsedTime&VarType=Num&VarDesc=DivArrDelay&VarType=Num&VarDesc=DivDistance
+&VarType=Num&VarDesc=Div1Airport&VarType=Char&VarDesc=Div1AirportID&VarType=Num&VarDesc=Div1AirportSeqID
+&VarType=Num&VarDesc=Div1WheelsOn&VarType=Char&VarDesc=Div1TotalGTime&VarType=Num&VarDesc=Div1LongestGTime
+&VarType=Num&VarDesc=Div1WheelsOff&VarType=Char&VarDesc=Div1TailNum&VarType=Char&VarDesc=Div2Airport
+&VarType=Char&VarDesc=Div2AirportID&VarType=Num&VarDesc=Div2AirportSeqID&VarType=Num&VarDesc=Div2WheelsOn
+&VarType=Char&VarDesc=Div2TotalGTime&VarType=Num&VarDesc=Div2LongestGTime&VarType=Num&VarDesc=Div2WheelsOff
+&VarType=Char&VarDesc=Div2TailNum&VarType=Char&VarDesc=Div3Airport&VarType=Char&VarDesc=Div3AirportID
+&VarType=Num&VarDesc=Div3AirportSeqID&VarType=Num&VarDesc=Div3WheelsOn&VarType=Char&VarDesc=Div3TotalGTime
+&VarType=Num&VarDesc=Div3LongestGTime&VarType=Num&VarDesc=Div3WheelsOff&VarType=Char&VarDesc=Div3TailNum
+&VarType=Char&VarDesc=Div4Airport&VarType=Char&VarDesc=Div4AirportID&VarType=Num&VarDesc=Div4AirportSeqID
+&VarType=Num&VarDesc=Div4WheelsOn&VarType=Char&VarDesc=Div4TotalGTime&VarType=Num&VarDesc=Div4LongestGTime
+&VarType=Num&VarDesc=Div4WheelsOff&VarType=Char&VarDesc=Div4TailNum&VarType=Char&VarDesc=Div5Airport
+&VarType=Char&VarDesc=Div5AirportID&VarType=Num&VarDesc=Div5AirportSeqID&VarType=Num&VarDesc=Div5WheelsOn
+&VarType=Char&VarDesc=Div5TotalGTime&VarType=Num&VarDesc=Div5LongestGTime&VarType=Num&VarDesc=Div5WheelsOff
+&VarType=Char&VarDesc=Div5TailNum&VarType=Char'''
 
 DB1BMARKETS_POST='''UserTableName=DB1BMarket&DBShortName=Origin_and_Destination_Survey&RawDataTable=T_DB1B_MARKET&sqlstr
 =+SELECT+ITIN_ID%2CMKT_ID%2CMARKET_COUPONS%2CYEAR%2CQUARTER%2CORIGIN_AIRPORT_ID%2CORIGIN_AIRPORT_SEQ_ID
@@ -302,7 +357,7 @@ def DB1BCoupons_download(post=DB1BCOUPONS_POST,years = [2007], quarters=list(ran
 
   
 ### CURRENTLY MESSED UP, DOWNLOADS YEAR/MONTH BADY, TEST A 2-13 output
-def aotp_download(post=AOTP_POST_CS,years = [2007,2008], months=list(range(1,13)), data_dir='C:/Users/d29905P/Documents/airdelay/', root_filename = 'AOTP_CS'):
+def aotp_download(post=AOTP_POST_CS,years = [2007,2008], months=list(range(1,13)), data_dir='C:/users/d29905p/Documents/airline_competition_paper/code/network_games/bts_data/', root_filename = 'AOTP_CS'):
     '''    
     https://github.com/isaacobezo/get_rita/blob/master/get_transtat_data.py
     https://public.tableau.com/s/blog/2013/08/data-scraping-part-iii-python
@@ -319,7 +374,7 @@ def aotp_download(post=AOTP_POST_CS,years = [2007,2008], months=list(range(1,13)
             month_str = months_str[month-1]
             year = str(year)
             ########request variables           
-            post_vars={'year':year,'month':month_str,'frequency':"1"}
+            post_vars={'year':year,'month':month_str,'month_num':month,'frequency':"1"}
             print(post_vars)
             print('downloading aotp {year} {month}'.format(**post_vars))
             outfile = root_filename+'_'+str(year)+'_'+str(month)+'.csv'
