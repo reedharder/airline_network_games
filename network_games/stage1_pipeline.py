@@ -43,7 +43,7 @@ western= ['SEA','PDX','SFO','SAN','LAX','LAS','PHX','OAK','ONT','SMF','SJC']
 
 def main_data_pipeline(year = 2014, quarters = [3], session_id="western2014_q3", parameter_file="parameters_default.txt", airport_network=western, major_carriers =major_carriers_west_2014):
     #parse parameters file, extract variables 
-    variable_dict = parse_params(parameter_file,str_replacements={'%YEAR%':str(year),'%SESSION_ID%':session_id})
+    variable_dict = parse_params(parameter_file,str_replacements={'%YEAR%':str(year), '%QUARTER%':str(quarters[0]),'%SESSION_ID%':session_id})
     
     #create t100ranked file and supplementary data files (primary data on carrier-segment combos)
     print("creating carrier-segment data files...")
@@ -409,6 +409,7 @@ def Ftable_new(output_fn="processed_data/fleet_lookup_reg1_q1.csv", ac_lookup_di
     fleet_lookup =pd.DataFrame(rows)      
     fleet_lookup['below_bound'] = fleet_lookup.apply(lambda x: 1 if x['F_old'] < x['F_lower_bound'] else 0,1)
     if use_lower_F_bound:
+    # take max of
         fleet_lookup['F'] = fleet_lookup['F_lower_bound']
     else:
         fleet_lookup['F'] = fleet_lookup.apply(lambda x: max( x['F_old'], x['F_lower_bound']),1)
@@ -1061,8 +1062,17 @@ def t100_monthly_viz( outdir = "C:/Users/d29905p/documents/airline_competition_p
         
         plt.savefig(outdir + 't100_%s_pics/%s_%s.jpg' % (year,basefn, market))
         plt.clf()
-        
-        
+  
+
+
+
+def run():      
+    for year in [2012,2010,2009,2008]:
+        for quarter in [1,2,3,4]:
+            if not (quarter ==1 and year == 2012):
+                K=main_data_pipeline(year = year, quarters = [quarter], session_id="western%s_q%s" % (year,quarter))
+                print([year,quarter])
+                print(K[0].UNIQUE_CARRIER.value_counts().keys().tolist())
 '''
 for q in [1,2,3]:
     K=main_data_pipeline(year=2013, quarters = [q], session_id = "western2013_q%s" % q)

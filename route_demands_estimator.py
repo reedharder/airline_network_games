@@ -20,6 +20,9 @@ import pandas as pd
 import time
 import gc
 import sys
+import logging
+import traceback
+
 
 #function proportion of sampled markets with less than or equal to given number of connecting flights  
 def connecting_flight_diagnostic(connections_max=2,  db1b_file='DB1B_MARKET_2014_Q1.csv',data_dir = 'C:/users/d29905p/Documents/airline_competition_paper/code/network_games/bts_data/'):
@@ -40,6 +43,7 @@ def connecting_flight_diagnostic(connections_max=2,  db1b_file='DB1B_MARKET_2014
     
 
 def create_route_demands_quarter(year =2014, quarter=1, filter_null_fares=False, filter_fare_bounds = [None, None], base_coup_fn= 'DB1B_COUPON_{year}_Q{quarter}.csv', base_mkt_fn = 'DB1B_MARKET_{year}_Q{quarter}.csv',data_dir = 'C:/users/d29905p/Documents/airline_competition_paper/code/network_games/bts_data/', outfile = 'route_demand_{year}_Q{quarter}.csv'):
+    
     #year =2014
     #quarter=1
     #filter_null_fares=False
@@ -114,13 +118,29 @@ def create_route_demands_quarter(year =2014, quarter=1, filter_null_fares=False,
                 gc.collect()
             new_line= [str(x['YEAR'].iloc[0]),str(x['QUARTER'].iloc[0]), num_flights(x),str(10*x['PASSENGERS'].iloc[0]),\
             origin(x), connection(x),dest(x), first_op(x),
-            second_op(x),str(x['MARKET_FARE'].iloc[0])]
+            second_op(x),str(x['MARKET_FARE'].iloc[0]),str(x['BULK_FARE'].iloc[0])]
         
-            
-            outfile.write(",".join(new_line) +'\n')
+            try: 
+                outfile.write(",".join(new_line) +'\n')
+            except:
+                #remove any nan
+                try: 
+                    new_line = [i if type(i)==str else '' for i in new_line]
+                    outfile.write(",".join(new_line) +'\n')
+                except:
+                    print(new_line)
+                    logging.exception('Got exception on main handler')
+                    raise
+                    
     #REVISE LEG FILE, NEEDS TO BE DELLED OR NAME CHANGED AFTER USE, make this a user option. THEN RESCUE LEG FILE FOR 2007, BETTER PARAMETERIZE THIS FUNCTION
     try:
-        merge_df = pd.read_csv(data_dir + "leg_file_" + outfile, dtype={'YEAR':int,'QUARTER':int,'PASSENGERS':int,'MARKET_FARE':float})
+        merge_df = pd.read_csv(data_dir + "leg_file_" + outfile)
+        try:
+            merge_df.drop('BULK_FARE',1)    
+        except ValueError:
+            pass 
+        merge_df[['YEAR','QUARTER', 'NUM_FLIGHTS']] = merge_df[['YEAR','QUARTER', 'NUM_FLIGHTS']].astype(int) 
+        merge_df[['MARKET_FARE','PASSENGERS']] =  merge_df[['MARKET_FARE','PASSENGERS']].astype(float)        
         def wavg(group):
             d = group['MARKET_FARE']
             w = group['PASSENGERS']
@@ -136,7 +156,7 @@ def create_route_demands_quarter(year =2014, quarter=1, filter_null_fares=False,
         with open(data_dir + "errorlog_route_demands",'a') as logfile:
             logfile.write(str(sys.exc_info()[0])+'\n')
             logfile.write(str(sys.exc_info()[1])+'\n')
-            logfile.write(str(sys.exc_info()[2])+'\n\n')
+            traceback.print_tb(sys.last_traceback, file=open(data_dir + "errorlog_route_demands",'a'))
             
         return merge_df
    
@@ -144,20 +164,28 @@ def create_route_demands_quarter(year =2014, quarter=1, filter_null_fares=False,
     
 ##CLEAN UP THIS FILE, REMOVE FIRST FUCTION, FIGURE OUT WHY MERGING FAILS
 def run():
-    for year in [2007,2008]:
+    LOG_FILENAME = data_dir + "errorlog_route_demands.txt"
+    logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG)
+    logging.debug('This message should go to the log file')
+    for year in [2012]:
         for quarter in [1,2,3,4]:    
-            if not (year==2007 and quarter ==1):
-                m=create_route_demands_quarter(year=year,quarter=quarter)
+           m=create_route_demands_quarter(year=year,quarter=quarter)
     
-    for year in [2013]:
+    #WHY DOES THIS ONLY WORK OUTSIDE FUNCTION?
+    for year in [2012]:
         for quarter in [1,2,3,4]:
-            
+            t0=time.time()
             data_dir = 'C:/users/d29905p/Documents/airline_competition_paper/code/network_games/bts_data/'
             outfile = 'route_demand_{year}_Q{quarter}.csv'
             outfile  = outfile.format(year=year, quarter=quarter)
             merge_df = pd.read_csv(data_dir + "leg_file_" + outfile)# dtype={'YEAR':int,'QUARTER':int,'PASSENGERS':int,'NUM_FLIGHTS':int, 'MARKET_FARE':float})
+            try:
+                merge_df.drop('BULK_FARE',1)    
+            except ValueError:
+                pass
             merge_df[['YEAR','QUARTER', 'NUM_FLIGHTS']] = merge_df[['YEAR','QUARTER', 'NUM_FLIGHTS']].astype(int) 
             merge_df[['MARKET_FARE','PASSENGERS']] =  merge_df[['MARKET_FARE','PASSENGERS']].astype(float)
+            
             def wavg(group):
                     d = group['MARKET_FARE']
                     w = group['PASSENGERS']
@@ -170,7 +198,7 @@ def run():
             merge_df = merge_df.replace('NotANumber','')
             merge_df.to_csv(data_dir + outfile)
             ###m = create_route_demands_quarter2(year =2014, quarter=q)
-    
+            print("checkpoint %s sec" % (time.time()-t0)) 
     quarter =1
     year =2014
     data_dir = 'C:/users/d29905p/Documents/airline_competition_paper/code/network_games/bts_data/'

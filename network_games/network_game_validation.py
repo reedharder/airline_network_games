@@ -19,7 +19,7 @@ from itertools import product
 import ast
 import pickle
 import matplotlib.pyplot as plt
-bts_datadir = "C:/Users/d29905p/documents/airline_competition_paper/code/network_games/"
+bts_datadir = "C:/Users/d29905p/documents/airline_competition_paper/code/network_games/bts_data/"
 fig_dir = "C:/Users/d29905p/documents/airline_competition_paper/aotp_temporal/"
 
 major_carriers_2014 = ['DL','WN','UA','US','AA','B6','NK','AS','F9','VX']
@@ -92,6 +92,8 @@ def AOTP_viz():
     year=2007
     marketset = western
     include_CX_DIV = True
+    #rolling average lag in days
+    smoothing = 9
     aotp = pd.read_csv(bts_datadir + "aotp%s.csv" % year, usecols = ['YEAR','QUARTER','MONTH','DAY_OF_MONTH','FLIGHT_DATE','ORIGIN','DESTINATION','UNIQUE_CARRIER','CANCELLED','DIVERTED','NUMBER_FLIGHTS','TAIL_NUMBER' ])    
     #select relevant markets
     aotp = aotp[aotp['ORIGIN'].isin(marketset) & aotp['DESTINATION'].isin(marketset)]
@@ -120,10 +122,10 @@ def AOTP_viz():
     #add rolling avg of flights
     rolling = []
     for vec in market_dynamics_df['FLIGHTS_VEC'].tolist():        
-        rolling.append(pd.rolling_mean(vec,6) )
+        rolling.append(pd.rolling_mean(vec,smoothing) )
         
-    market_dynamics_df['ROLLING6'] =rolling
-    market_dynamics_df['ROLLING6_MAX']=market_dynamics_df.apply(lambda row: np.nanmax(row['ROLLING6']),1)
+    market_dynamics_df['ROLLING'] =rolling
+    market_dynamics_df['ROLLING_MAX']=market_dynamics_df.apply(lambda row: np.nanmax(row['ROLLING']),1)
     
     market_dynamics_groups = market_dynamics_df.groupby(['ORIGIN','DESTINATION'])
     #plots for unidrectional markets (check discripency, eliminate max <1?)
@@ -157,12 +159,12 @@ def AOTP_viz():
        
         plt.title('Frequency Competition in %s Market, %s' % (group[0]+'_'+group[1], year))
         plt.subplot(2,1,2)
-        plt.ylabel('6 day rolling avg')
+        plt.ylabel('%s day rolling avg' % smoothing)
         plt.xlabel('Month')
         plt.xticks(lab_locs, month_labs,rotation=45) 
         for carrier in market['UNIQUE_CARRIER'].tolist():
             row = market[market['UNIQUE_CARRIER']==carrier]
-            plt.plot(np.nan_to_num(row['ROLLING6'].item()), label=carrier) 
+            plt.plot(np.nan_to_num(row['ROLLING'].item()), label=carrier) 
             plt.legend(shadow=True, loc=3,fancybox=True)   
         plt.savefig(fig_dir+'aotp_fig_%s_%s.jpg' % ('-'.join(sorted([group[0],group[1]]))+'_'+group[0]+'_'+group[1],year))
         plt.clf()

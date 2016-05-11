@@ -353,7 +353,10 @@ def DB1BCoupons_download(post=DB1BCOUPONS_POST,years = [2007], quarters=list(ran
             else:
                 print('Error')
     return('All files downloaded')
-    
+
+def run():
+    a=DB1BMarkets_download(years = [2009,2010])
+    b= DB1BCoupons_download(years = [2009,2010])
 
   
 ### CURRENTLY MESSED UP, DOWNLOADS YEAR/MONTH BADY, TEST A 2-13 output

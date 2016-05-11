@@ -1,14 +1,16 @@
 % Stochastic Optimization fitting: SPSA 
 records = {};
 
+for y=[2012,2010,2009,2008];
 for q =[4,3,2, 1]
-    
+if not(y==2012 & q==1)
+    i=1;
     %fqs = {['AS', 'OO', 'QX', 'UA', 'US', 'VX', 'WN', 'YV'],['AS', 'MQ', 'OO', 'QX', 'UA', 'US', 'VX', 'WN', 'YV'],['AA', 'AS', 'DL', 'MQ', 'OO', 'QX', 'UA', 'US', 'VX', 'WN', 'YV'],['AA', 'AS', 'DL', 'MQ', 'NK', 'OO', 'QX', 'UA', 'US', 'VX', 'WN', 'YV']};
     fqs = {[1 1 1 0 0 0 0 1],[1 1 1 1 0 0 0 0 1],[1 1 1 1 1 1 0 0 0 0 1],[1 1 1 1 1 1 1 0 0 0 0 1]};
     fixed_carrier = fqs{q};
     
     %%%PART I: Load scenario carrier and market data
-    SESSION_ID = sprintf('western2013_q%d',q);
+    SESSION_ID = sprintf('western%d_q%d',y,q);
     tic
     n=20000;
     cd('O:\Documents\airline_competition_paper\code\network_games')
@@ -194,7 +196,10 @@ for q =[4,3,2, 1]
     toc
     
     
-    records{q} = {best_loss, best_theta};
+    records{i} = {y,q,best_loss, best_theta};
+    i=i+1;
+end
+end
 end
 % plot(diff_ests)
 % title('Myopic Best Response Convergence with eps=.1, 6 iterations')
