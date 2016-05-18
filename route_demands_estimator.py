@@ -164,15 +164,16 @@ def create_route_demands_quarter(year =2014, quarter=1, filter_null_fares=False,
     
 ##CLEAN UP THIS FILE, REMOVE FIRST FUCTION, FIGURE OUT WHY MERGING FAILS
 def run():
+    data_dir = 'C:/users/d29905p/Documents/airline_competition_paper/code/network_games/bts_data/'
     LOG_FILENAME = data_dir + "errorlog_route_demands.txt"
     logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG)
     logging.debug('This message should go to the log file')
-    for year in [2012]:
+    for year in [2011]:
         for quarter in [1,2,3,4]:    
            m=create_route_demands_quarter(year=year,quarter=quarter)
     
     #WHY DOES THIS ONLY WORK OUTSIDE FUNCTION?
-    for year in [2012]:
+    for year in [2011]:
         for quarter in [1,2,3,4]:
             t0=time.time()
             data_dir = 'C:/users/d29905p/Documents/airline_competition_paper/code/network_games/bts_data/'
