@@ -36,31 +36,31 @@ except NameError:
 #airport sets    
 #HNL removed from ope35
 session_id="western2014_q3"
+#major carriers: carriers that will be playing the game (non regional), market connection modifiers calculated for them only
 major_carriers_2014 = ['DL','WN','UA','US','AA','B6','NK','AS','F9','VX']
 major_carriers_west_2014 = ['WN','UA','US','AS','VX']
 ope35 = ['ATL', 'BOS', 'BWI', 'CLE', 'CLT', 'CVG', 'DCA', 'DEN', 'DFW', 'DTW', 'EWR', 'FLL', 'IAD', 'IAH', 'JFK', 'LAS', 'LAX', 'LGA', 'MCO', 'MDW', 'MEM', 'MIA', 'MSP', 'ORD', 'PDX', 'PHL', 'PHX', 'PIT', 'SAN', 'SEA', 'SFO', 'SLC', 'STL', 'TPA']
 western= ['SEA','PDX','SFO','SAN','LAX','LAS','PHX','OAK','ONT','SMF','SJC']
 
-def main_data_pipeline(year = 2014, quarters = [3], session_id="western2014_q3", parameter_file="parameters_default.txt", airport_network=western, major_carriers =major_carriers_west_2014):
+def main_data_pipeline(year = 2014, quarter = 1, session_id="western2014_q3_test", parameter_file="parameters_default.txt", airport_network=western, major_carriers =major_carriers_west_2014):
     #parse parameters file, extract variables 
-    variable_dict = parse_params(parameter_file,str_replacements={'%YEAR%':str(year), '%QUARTER%':str(quarters[0]),'%SESSION_ID%':session_id})
+    variable_dict = parse_params(parameter_file,str_replacements={'%YEAR%':str(year), '%QUARTER%':str(quarter),'%SESSION_ID%':session_id})
     
     #create t100ranked file and supplementary data files (primary data on carrier-segment combos)
     print("creating carrier-segment data files...")
-    t100ranked = nonstop_market_profile(output_file = variable_dict['t100ranked_output_fn'],aotp_fn = variable_dict['aotp_fn'], quarters=quarters, \
+    t100ranked = nonstop_market_profile(output_file = variable_dict['t100ranked_output_fn'],aotp_fn = variable_dict['aotp_fn'], quarters=[quarter], \
         t100_fn=variable_dict['t100_fn'],p52_fn=variable_dict['p52_fn'], t100_avgd_fn=variable_dict['t100_avgd_fn'], merge_HP=variable_dict['merge_HP'], \
         t100_summed_fn = variable_dict['t100_summed_fn'], t100_craft_avg_fn=variable_dict['t100_craft_avg_fn'],\
-        ignore_mkts  = variable_dict['ignore_mkts'],\
+        ignore_mkts  = variable_dict['ignore_mkts'],max_competitors = variable_dict['max_competitors'],\
+        craft_freq_cuttoff = variable_dict['craft_freq_cuttoff'], \
         freq_cuttoff = variable_dict['freq_cuttoff'], ms_cuttoff=variable_dict['ms_cuttoff'], fs_cuttoff=variable_dict['fs_cuttoff'], only_big_carriers=variable_dict['only_big_carriers'], carriers_of_interest = variable_dict['carriers_of_interest'],airports = airport_network)
     
     #modify carrier-segment market sizes by considering connecting passengers
-    print("modifing market sizes via connecting passenge..." ) 
-    ###COME BACK TO THIS AFTER ROUTE DEMANDS CREATOR HAS BEEN FIXED
-    ###ADDTIONALLY, DOWNLOAD BTS FILES, MARK NEEDED CATEGORIES, ETC
+    print("modifing market sizes via connecting passenge..." )   
     t100ranked=get_market_connection_modifiers(major_carriers = major_carriers,  market_table_fn= variable_dict['t100ranked_output_fn'],outfile=variable_dict['t100ranked_mktmod_output_fn'],route_demands_fn = variable_dict['route_demands_fn'])
     print("estimating fleets available...")
     ###change t100 file when appropriate
-    fleet_lookup=Ftable_new(output_fn=variable_dict['ftable_output_fn'], ac_lookup_dict = variable_dict['ac_lookup_dict'],include_regional_carriers=variable_dict['include_regional_carriers'],\
+    fleet_lookup=Ftable_sans_b43(turnaround = variable_dict['turnaround'],output_fn=variable_dict['ftable_output_fn'], ac_lookup_dict = variable_dict['ac_lookup_dict'],include_regional_carriers=variable_dict['include_regional_carriers'],\
         use_lower_F_bound=variable_dict['use_lower_F_bound'], full_t00_fn=variable_dict['t100_fn'], ac_type_fn =variable_dict['ac_type_fn'],\
         t100summed_fn=variable_dict['t100_summed_fn'],market_table_fn= variable_dict['t100ranked_mktmod_output_fn'],\
         b43_fn = variable_dict['b43_fn'])
@@ -131,6 +131,8 @@ ac_type_fn is aircraft type file from BTS
 b43_fn is Schedule B4 file from BTS
 airports is a list of airports in the network
 freq_cuttoff is minimum daily frequency to consider
+turnaround is a minimum turnaround time for a flight
+craft_freq_cuttoff is a minumum daily frequency of a craft per carrier-segment to be included
 ms_cuttoff is cumulative market share to consider in each market
 merge_HP: True if carrier HP is to be merged with UA
 only_big_carriers: if True, only carriers in list carriers_of_interest will be counted in constructing market type and market size, otherwise any that meet the frequency and marketshare cuttoffs will be included
@@ -140,6 +142,7 @@ def nonstop_market_profile(output_file = "processed_data/nonstop_competitive_mar
     t100_fn="bts_data/T100_2007.csv",p52_fn="bts_data/P52_2007.csv", t100_avgd_fn="processed_data/t100_avgd_reg1_q1.csv", merge_HP=True, \
     t100_summed_fn = 'processed_data/t100_summed_reg1_q1.csv', t100_craft_avg_fn='processed_data/t100_craft_avg_reg1_q1.csv',\
     ignore_mkts = ['PDX_SJC','PDX_SFO','OAK_PDX'],\
+    craft_freq_cuttoff = .1,max_competitors=3,\
     freq_cuttoff = .5, ms_cuttoff=.1, fs_cuttoff = .1, only_big_carriers=False, carriers_of_interest = ['AS','UA','US','WN'],airports = ['SEA','PDX','SFO','SAN','LAX','LAS','PHX','OAK','ONT','SMF','SJC']):
         
     #read in revelant bts files and supplementary data files 
@@ -164,12 +167,12 @@ def nonstop_market_profile(output_file = "processed_data/nonstop_competitive_mar
     if merge_HP:
         relevant_t100['UNIQUE_CARRIER']=relevant_t100['UNIQUE_CARRIER'].replace('HP','US')
 
-    #get relevant data from schedule P-5.2
+    #get relevant data from schedule P-5.2 (financials)
     relevant_p52_d = p52[p52['REGION']=='D']
     relevant_p52=relevant_p52_d[relevant_p52_d['QUARTER'].isin(quarters)]
     
     #average quarterly costs if necessary 
-    if len(quarters) > 1:
+    if len(quarters) > 1: #not recommended, heterogeneity between quarters (market entries, market exits) is common
         expenses_by_type=relevant_p52[['AIRCRAFT_TYPE','UNIQUE_CARRIER','TOT_AIR_OP_EXPENSES', 'TOTAL_AIR_HOURS']].groupby(['AIRCRAFT_TYPE','UNIQUE_CARRIER']).aggregate(np.sum).reset_index().dropna()
     else:
         expenses_by_type = relevant_p52[['AIRCRAFT_TYPE','UNIQUE_CARRIER','TOT_AIR_OP_EXPENSES', 'TOTAL_AIR_HOURS']].dropna()   
@@ -178,32 +181,41 @@ def nonstop_market_profile(output_file = "processed_data/nonstop_competitive_mar
 
     #average relevant monthly frequency to get daily freqencies
     t100fields =['BI_MARKET','UNIQUE_CARRIER','ORIGIN', 'DEST','AIRCRAFT_TYPE','DEPARTURES_SCHEDULED','DEPARTURES_PERFORMED','SEATS','PASSENGERS','DISTANCE','AIR_TIME']
-    #daily departures, seats, passengers, avg distance, total airtime
+    #quarterly departures, daily seats, daily passengers, avg distance, total airtime, aggregated across months
     t100_summed = relevant_t100[t100fields].groupby(['UNIQUE_CARRIER','BI_MARKET','ORIGIN','DEST','AIRCRAFT_TYPE']).aggregate({'DEPARTURES_SCHEDULED':lambda x: np.sum(x),'DEPARTURES_PERFORMED':lambda x: np.sum(x),'SEATS':lambda x: np.sum(x)/(365/(4/len(quarters))),'PASSENGERS':lambda x: np.sum(x)/(365/(4/len(quarters))),'DISTANCE':np.mean,'AIR_TIME':lambda x: np.sum(x)}).reset_index()
     if only_big_carriers:
         t100_summed=t100_summed[t100_summed['UNIQUE_CARRIER'].isin(carriers_of_interest)]        
     #convert airtime to hours
     t100_summed['AIR_HOURS']=(t100_summed['AIR_TIME']/60)
     t100_summed['FLIGHT_TIME']=t100_summed['AIR_HOURS']/t100_summed['DEPARTURES_PERFORMED']
-    
+    #get frequency per day
     t100_summed['DAILY_FREQ']=t100_summed['DEPARTURES_SCHEDULED']/(365/(4/len(quarters)))
+    #get average number available seats per flight
+    t100_summed['SEATS_PER_FLIGHT'] = t100_summed['SEATS']*(365/(4/len(quarters)))/t100_summed['DEPARTURES_PERFORMED']
+    #drop unnessessary total airtime column
     t100_summed = t100_summed.drop('AIR_TIME',axis=1)
     #average values between segments sharing a bidirectional market 
     t100fields =['BI_MARKET','UNIQUE_CARRIER','AIRCRAFT_TYPE','DEPARTURES_SCHEDULED','SEATS','PASSENGERS','DISTANCE','AIR_HOURS', 'DAILY_FREQ']
     #merge t100 data with cost data
     t100_summed=pd.merge(t100_summed,expenses_by_type,on=['AIRCRAFT_TYPE','UNIQUE_CARRIER'])
-    #NOTE, CHECL FLIGHT COSTS HERE, PERHAPS DO DEPARTURES PERFORMED
+    #Calculate cost per  invididual flight for each flight type (quarterly expenses over departures performed per quarter)
     t100_summed['FLIGHT_COST'] = t100_summed['AIR_HOURS']*t100_summed['EXP_PER_HOUR']/t100_summed['DEPARTURES_PERFORMED'] #get cost per flight type
-    #NOTE: FOR THIS HOURS AND FRACTION FOF TOTAL HOURS FOR FLIGHT FOR CARRIER MUST BE ADDED , I THINK IT CAN BE DONE HERE 
+    #filter empty flights
     t100_summed = t100_summed[t100_summed['PASSENGERS']>0]
-    t100_summed = t100_summed[t100_summed['DEPARTURES_SCHEDULED']>0]    
-    t100_summed.to_csv(t100_summed_fn) # NOTE: SEE DISTRIBUTION WITHIN MARKETS, IS AVERAGING REASONABLE -> weight by passengers: before averaging markets: plane types back and forth might not be same , passengers more likely to correlate, but now we can test
-    #average flight cost between different types  
+    t100_summed = t100_summed[t100_summed['DEPARTURES_SCHEDULED']>0] 
+    #additional filters: frequency, unrealistic seats per flight 
+    t100_summed = t100_summed[t100_summed['DAILY_FREQ']>=craft_freq_cuttoff]
+    #check for extreme seat numbers
+    if t100_summed[(t100_summed['SEATS_PER_FLIGHT']<10) | (t100_summed['SEATS_PER_FLIGHT']<500)].shape[0]>0:
+        print("Average seat anomalies:")
+        print(t100_summed[(t100_summed['SEATS_PER_FLIGHT']<10) | (t100_summed['SEATS_PER_FLIGHT']<500)])
+    t100_summed.to_csv(t100_summed_fn)
     t100fields =['BI_MARKET','ORIGIN','DEST','UNIQUE_CARRIER','AIRCRAFT_TYPE','DEPARTURES_SCHEDULED','SEATS','PASSENGERS','DISTANCE', 'DAILY_FREQ','FLIGHT_COST','FLIGHT_TIME','AIR_HOURS']
-   
-    t100_summed_avgs = t100_summed[t100fields].groupby(['UNIQUE_CARRIER','BI_MARKET']).apply(avg_costs)
-    t100_craft_avg = t100_summed_avgs[t100fields].groupby(['UNIQUE_CARRIER','BI_MARKET','ORIGIN','DEST']).aggregate({'DEPARTURES_SCHEDULED':np.sum,'SEATS':np.sum,'PASSENGERS':np.sum,'DISTANCE':np.mean, 'DAILY_FREQ':np.sum,'FLIGHT_COST':np.mean,'FLIGHT_TIME':np.mean,'AIR_HOURS':np.sum}).reset_index()
-    #textfile of t100 summed over months, to check passenger equivalence between market directions
+    # calculate average cost, airtime, and seats per flight, per carrier per directional segment across craft types, weighted by frequency of constituent aircraft types
+    t100_summed_avgs = t100_summed[t100fields].groupby(['UNIQUE_CARRIER','BI_MARKET']).apply(craft_weight_avgs)
+    # calculate averages over craft 
+    t100_craft_avg = t100_summed_avgs[t100fields].groupby(['UNIQUE_CARRIER','BI_MARKET','ORIGIN','DEST']).aggregate({'DEPARTURES_SCHEDULED':np.sum,'SEATS':np.sum,'PASSENGERS':np.sum,'DISTANCE':np.mean, 'DAILY_FREQ':np.sum,'FLIGHT_COST':np.mean,'FLIGHT_TIME':np.mean,'AIR_HOURS':np.sum}).reset_index()  
+    #save file of t100 summed over months and averaged over craft, to check passenger equivalence between market directions
     t100_craft_avg.to_csv(t100_craft_avg_fn)
     #average values between segments sharing a bidirectional market 
     t100fields =['BI_MARKET','UNIQUE_CARRIER','DEPARTURES_SCHEDULED','SEATS','PASSENGERS','DISTANCE', 'DAILY_FREQ','FLIGHT_COST','FLIGHT_TIME','AIR_HOURS']
@@ -212,7 +224,7 @@ def nonstop_market_profile(output_file = "processed_data/nonstop_competitive_mar
     t100_avgd.to_csv(t100_avgd_fn,sep="\t")  
     #remove entries below daily frequency cuttoff
     t100_avgd_clip = t100_avgd[t100_avgd['DAILY_FREQ']>=freq_cuttoff]
-    #group and rank carriers within markets
+    #group and rank carriers within markets, calculate market shares, market totals, etc
     t100_grouped = t100_avgd_clip.groupby('BI_MARKET')
     grouplist = []
     for market in list(set(t100_avgd_clip['BI_MARKET'].tolist())):
@@ -220,15 +232,12 @@ def nonstop_market_profile(output_file = "processed_data/nonstop_competitive_mar
         new_group = market_rank(market_group, ms_cuttoff=ms_cuttoff,fs_cuttoff=fs_cuttoff)
         grouplist.append(new_group)
     t100ranked = pd.concat(grouplist,axis=0)
-    t100ranked=t100ranked.sort(columns=['BI_MARKET','MARKET_RANK'])    
-    t100ranked['BACKFOURTH'] = 2*(t100ranked['FLIGHT_TIME']+45/60)
-    #remove markets more with more than 3 competitors
-    
+    t100ranked=t100ranked.sort(columns=['BI_MARKET','MARKET_RANK'])            
+    #remove markets more with more than 3 competitors from model   
     original_count = t100ranked.shape[0]
     t100ranked = t100ranked[t100ranked['MARKET_COMPETITORS']<4]
     new_count = t100ranked.shape[0]
-    print('removed %s markets with more than 3 competitors, out of %s in total' % (original_count - new_count, original_count))
-    
+    print('removed %s markets with more than 3 competitors, out of %s in total' % (original_count - new_count, original_count))    
     #save t100ranked to file
     t100ranked.to_csv(output_file)    
     return t100ranked
@@ -242,11 +251,13 @@ def create_market(row):
 '''
 helper function get a weighed average costs and flight times across a directional market
 '''
-def avg_costs(gb):
+def craft_weight_avgs(gb):
     cost_weighted = np.average(gb['FLIGHT_COST'], weights=gb['DAILY_FREQ'])
     gb['FLIGHT_COST'] = np.repeat(cost_weighted,gb.shape[0])
     time_weighted = np.average(gb['FLIGHT_TIME'], weights=gb['DAILY_FREQ'])
-    gb['FLIGHT_TIME'] = np.repeat(time_weighted,gb.shape[0])            
+    gb['FLIGHT_TIME'] = np.repeat(time_weighted,gb.shape[0])
+    seats_weighted = np.average(gb['SEATS_PER_FLIGHT'], weights=gb['DAILY_FREQ'])
+    gb['SEATS_PER_FLIGHT'] = np.repeat(seats_weighted,gb.shape[0])            
     return gb
 '''
 helper function to average across aircraft types and rank carriers by passenger flow 
@@ -289,19 +300,25 @@ def market_rank(gb, ms_cuttoff,fs_cuttoff):
  #function to add modifiers to market size for each market/carier combo based on fraction of connecting passengers 
 def get_market_connection_modifiers( major_carriers = ['AS','UA','US','WN'], market_table_fn= "processed_data/nonstop_competitive_markets_reg1_q1.csv",outfile='processed_data/nonstop_competitive_markets_mktmod_reg1_q1.csv',route_demands_fn = 'bts_data/route_demand_Q1.csv'):   
     t100ranked = pd.read_csv(market_table_fn)   
+    #carrier - market label
     t100ranked['CARRIER_MARKET'] = t100ranked.apply(lambda row: row['UNIQUE_CARRIER'] + '_' + row['BI_MARKET'],1)
-    t100ranked['connection_demands'] = np.zeros((t100ranked.shape[0],1))
     t100ranked = t100ranked.set_index('CARRIER_MARKET')
+    #initialize connection demands count
+    t100ranked['connection_demands'] = np.zeros((t100ranked.shape[0],1))
+    #get list of markets in alphabetical order
     markets_sorted = sorted(list(set(t100ranked['BI_MARKET'].tolist())))   
+    #initialize nonstop and total passenger counts for each market
     nonstop_numbers = {mkt:0 for mkt in markets_sorted}
     total_numbers={mkt:0 for mkt in markets_sorted}
-    ###carriers_sorted = sorted(list(set(t100ranked['UNIQUE_CARRIER'].tolist())))
+    #get relevant major carriers for market, save in a dictionary
     market_dict={mkt: list(set(t100ranked.groupby('BI_MARKET').get_group(mkt)['UNIQUE_CARRIER'].tolist()).intersection(major_carriers)) for mkt in markets_sorted}
+    #load route demands table    
     route_demands = pd.read_csv(route_demands_fn)
     def create_market(row):
         market = [row['ORIGIN'], row['DESTINATION']]
         market.sort()
         return "_".join(market)
+    #loop through route demands table
     for i,line in enumerate(route_demands.to_dict('records')):       
         if i%100000 ==0:
             print(i)
@@ -310,16 +327,20 @@ def get_market_connection_modifiers( major_carriers = ['AS','UA','US','WN'], mar
         leg2 = "_".join(sorted([line['CONNECTION'],line['DESTINATION']])) if line['NUM_FLIGHTS']==2 else 'NULL'
         carrier1 =line['FIRST_OPERATING_CARRIER']
         carrier2 =line['SECOND_OPERATING_CARRIER']
-        #if non-stop market passengers, add to 
+        #if flight non stop, add passengers to nonstop and total passenger pool in market
         if line['NUM_FLIGHTS']==1 and bimarket in market_dict and carrier1 in market_dict[bimarket]:
             nonstop_numbers[bimarket] += line['PASSENGERS']
             total_numbers[bimarket] +=line['PASSENGERS']
+        #if market has connection, add passengers to total passenger pool  and to special connecting pool for relevant carrier-segment
         if line['NUM_FLIGHTS']==2 and leg1 in market_dict and carrier1 in market_dict[leg1]:
             total_numbers[leg1] +=line['PASSENGERS']
             t100ranked.loc[carrier1 + '_' + leg1,'connection_demands'] += line['PASSENGERS']
         if line['NUM_FLIGHTS']==2 and leg2 in market_dict and carrier2 in market_dict[leg2]:
             total_numbers[leg2] +=line['PASSENGERS']
             t100ranked.loc[carrier2 + '_' + leg2,'connection_demands'] += line['PASSENGERS']
+    # for each row, calculate ratio of connecting plus non stop passengers to total passengers pool
+    #(all connecting and non stop passengers for all carriers in segment)
+    # then, adjust demand on individual carrier-segments to account for these connecting passengers that only they "compete" for
     def market_adjust(row):
         if row['UNIQUE_CARRIER'] in major_carriers:
             ratio=(row['connection_demands'] + nonstop_numbers[row['BI_MARKET']])/total_numbers[row['BI_MARKET']]
@@ -416,6 +437,86 @@ def Ftable_new(output_fn="processed_data/fleet_lookup_reg1_q1.csv", ac_lookup_di
     fleet_lookup.to_csv(output_fn)
     return fleet_lookup
 
+'''
+function to get fleets available to each carrier by comparing time ratios in and out of network and comparing to full inventory size
+use_lower_F_bound: if true, use frequency rather than airtime to determine fleet size
+'''
+'''
+test
+t100bi = t100_summed[['UNIQUE_CARRIER','BI_MARKET','DAILY_FREQ','AIRCRAFT_TYPE','SEATS_PER_FLIGHT']].groupby(['UNIQUE_CARRIER','BI_MARKET','AIRCRAFT_TYPE']).aggregate(np.mean).reset_index().groupby(['UNIQUE_CARRIER','AIRCRAFT_TYPE'])
+
+for name, group in t100bi:
+    
+def market_rank(gb, ms_cuttoff,fs_cuttoff):                                  
+    Mtot = gb['PASSENGERS'].sum()
+    Ftot =gb['DAILY_FREQ'].sum()
+    gb['FREQ_TOT'] = np.repeat(Ftot,gb.shape[0] )   
+    gb['MARKET_TOT'] = np.repeat(Mtot,gb.shape[0] )    
+    Mcount =gb.shape[0]
+    gb['MARKET_COMPETITORS'] = np.repeat(Mcount,gb.shape[0] )
+    rank = np.array(gb['PASSENGERS'].tolist()).argsort()[::-1].argsort() +1 
+    gb['MARKET_RANK'] = rank         
+    gb = gb.sort(columns=['MARKET_RANK'],ascending=True,axis =0)        
+    gb['MS_TOT']=gb['PASSENGERS']/gb['MARKET_TOT']
+    gb['FS_TOT']=gb['DAILY_FREQ']/gb['FREQ_TOT']
+    #cumulative market share upto and including that ranking
+    gb['CUM_MS']=gb.apply(lambda x: gb['MS_TOT'][:x['MARKET_RANK']].sum(), axis=1)
+    #cumulative market share upto that ranking
+    gb['PREV_CUM_MS']=gb.apply(lambda x: gb['MS_TOT'][:x['MARKET_RANK']-1].sum(), axis=1)
+    #remove those carriers that appear after cuttoff
+    gb=gb[gb['MS_TOT']>=ms_cuttoff]
+    gb=gb[gb['FS_TOT']>=fs_cuttoff]
+    #recalculate market shares
+    Mtot = gb['PASSENGERS'].sum()
+    Ftot =gb['DAILY_FREQ'].sum()
+    #get total market size
+    gb['MARKET_TOT'] = np.repeat(Mtot,gb.shape[0] )   
+    gb['FREQ_TOT'] = np.repeat(Ftot,gb.shape[0] )  
+    #get total number of competitors in market and save as column 
+    Mcount =gb.shape[0]
+    gb['MARKET_COMPETITORS'] = np.repeat(Mcount,gb.shape[0] )
+    #get market share as passengers for that carrier over total market size 
+    gb['MS_TOT']=gb['PASSENGERS']/gb['MARKET_TOT']
+    gb['FS_TOT']=gb['DAILY_FREQ']/gb['FREQ_TOT']
+    return gb    
+
+def tots
+
+'''
+def Ftable_sans_b43(turnaround = 30, output_fn="processed_data/fleet_lookup_reg1_q1.csv",include_regional_carriers=True, use_lower_F_bound=True, full_t00_fn="bts_data/t100_seg_all.csv", ac_type_fn ="bts_data/AIRCRAFT_TYPE_LOOKUP.csv",t100summed_fn="processed_data/t100_summed_reg1_q1.csv",market_table_fn= "processed_data/nonstop_competitive_markets_reg1_q1.csv"):     
+    #load output of nonstop_market_profile function, and premptively grouby carrier for efficient looping
+    t100ranked = pd.read_csv(market_table_fn)
+    t100ranked_gb =t100ranked.groupby(['UNIQUE_CARRIER'])
+    t100_summed =pd.read_csv(t100summed_fn)
+    t100_gb = t100_summed.groupby(['UNIQUE_CARRIER'])
+    #get sets of relevant markets and carriers  
+    carriers_sorted = sorted(list(set(t100ranked['UNIQUE_CARRIER'].tolist())))  
+    #average frequecies and seats per flight across directional markets  
+    freqs_across_markets_carrier_ac_type = t100_summed[['UNIQUE_CARRIER','BI_MARKET','DAILY_FREQ','AIRCRAFT_TYPE','SEATS_PER_FLIGHT']].groupby(['UNIQUE_CARRIER','BI_MARKET','AIRCRAFT_TYPE']).aggregate(np.mean).reset_index().groupby(['UNIQUE_CARRIER','AIRCRAFT_TYPE'])
+    # construct F table
+    rows=[]
+    for airline in carriers_sorted:
+        #get relevant aircraft types for this carrier
+        ac_types = list(set(t100_gb.get_group(airline)['AIRCRAFT_TYPE'].tolist()))
+        for ac_type in ac_types:
+            ac_type = int(ac_type)
+            row={}            
+            row['carrier'] = airline
+            row['aircraft_type']=ac_type          
+            #get lower bound on F from observed flight times and frequencies of this craft 
+            current_freqs_df=freqs_across_markets_carrier_ac_type.get_group((airline, ac_type))  
+            freqs_by_market=[[record['BI_MARKET'],record['DAILY_FREQ']] for record in current_freqs_df.to_dict('records')]               
+            carrier_df = t100ranked_gb.get_group(airline).set_index('BI_MARKET')            
+            F = sum([2*f[1]*(turnaround/60+carrier_df.loc[f[0]]['FLIGHT_TIME']) for f in freqs_by_market if f[0] in carrier_df.index ])/18
+            #save data to row            
+            #average seats on the craft
+            row['craft_seats'] = current_freqs_df['SEATS_PER_FLIGHT'].mean()
+            row['F'] = F
+            rows.append(row)
+    #create data frame 
+    fleet_lookup =pd.DataFrame(rows)         
+    fleet_lookup.to_csv(output_fn)
+    return fleet_lookup
 
 
 ##alternate fleet assigner via overlapping graph method

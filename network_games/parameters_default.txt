@@ -1,9 +1,11 @@
 ##general parameters
 #merge HP and UA data (assume they are suffieciently allied)
 merge_HP = True
+#maximum competitors in a market to model
+max_competitors = 3
 #specific markets to ignore in airport network
 ignore_mkts = [] 
-#frequency minimum for inclusion of carrier-segment
+#daily frequency minimum for inclusion of carrier-segment
 freq_cuttoff = 2
 #market share minimum for inclusion of carrier-segment
 ms_cuttoff = .1
@@ -17,6 +19,9 @@ carriers_of_interest = ['AS','UA','US','WN']
 include_regional_carriers = True
 #use lower bound on F based on frequency ###CLARIFY THIS###########
 use_lower_F_bound = True
+# when filtering by individual craft, remove rarely used from count, based on below daily frequency
+craft_freq_cuttoff = .1
+
 
 ##BTS data files to use
 #T100 segments file to use
@@ -50,6 +55,7 @@ t100ranked_mktmod_output_fn = processed_data/nonstop_competitive_markets_mktmod_
 
 ##Ftable_new output file: where to save airline fleet data
 ftable_output_fn = processed_data/fleet_lookup_%SESSION_ID%.csv
+turnaround = 30
 
 ##fleet_assign inputs
 #minimum carrier-segment coverage by hybrid aircraft type
