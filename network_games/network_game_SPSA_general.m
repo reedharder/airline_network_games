@@ -1,23 +1,26 @@
 % Stochastic Optimization fitting: SPSA 
-records = {};
-
-for y=[2012,2010,2009,2008];
-for q =[4,3,2, 1]
-if not(y==2012 & q==1)
-    i=1;
-    %fqs = {['AS', 'OO', 'QX', 'UA', 'US', 'VX', 'WN', 'YV'],['AS', 'MQ', 'OO', 'QX', 'UA', 'US', 'VX', 'WN', 'YV'],['AA', 'AS', 'DL', 'MQ', 'OO', 'QX', 'UA', 'US', 'VX', 'WN', 'YV'],['AA', 'AS', 'DL', 'MQ', 'NK', 'OO', 'QX', 'UA', 'US', 'VX', 'WN', 'YV']};
-    fqs = {[1 1 1 0 0 0 0 1],[1 1 1 1 0 0 0 0 1],[1 1 1 1 1 1 0 0 0 0 1],[1 1 1 1 1 1 1 0 0 0 0 1]};
-    fixed_carrier = fqs{q};
-    
+format long
+record_file = 'western_records.txt';
+f_outid = fopen(record_file,'a');
+load('carrier2mat.mat')
+n=25;
+theta_mat = zeros(size(date,1),15);
+for step_index = 1:size(date,1)
+    %%i=1;
+    y=date(step_index,1);
+    q=date(step_index,2);
+    %%%fqs = {['AS', 'OO', 'QX', 'UA', 'US', 'VX', 'WN', 'YV'],['AS', 'MQ', 'OO', 'QX', 'UA', 'US', 'VX', 'WN', 'YV'],['AA', 'AS', 'DL', 'MQ', 'OO', 'QX', 'UA', 'US', 'VX', 'WN', 'YV'],['AA', 'AS', 'DL', 'MQ', 'NK', 'OO', 'QX', 'UA', 'US', 'VX', 'WN', 'YV']};
+    %%fqs = {[1 1 1 0 0 0 0 1],[1 1 1 1 0 0 0 0 1],[1 1 1 1 1 1 0 0 0 0 1],[1 1 1 1 1 1 1 0 0 0 0 1]};
+    %%%fixed_carrier = fqs{q};
+    fixed_carrier = ind{step_index};
     %%%PART I: Load scenario carrier and market data
     SESSION_ID = sprintf('western%d_q%d',y,q);
-    tic
-    n=20000;
+    tic    
     cd('O:\Documents\airline_competition_paper\code\network_games')
     market_data_mat = csvread(sprintf('processed_data/SPSAdatamat_%s.csv',SESSION_ID),1,2);
     %fn_open = strcat('exp_files/carrier_data_basemod_reg1_2_0.0.txt');
     fn_open = strcat(sprintf('processed_data/carrier_data_%s.txt',SESSION_ID));
-    outfile_fn = sprintf('exp_files/SPSA_results_fulleq_MAPE_%s_2noAS_20k.csv',SESSION_ID);
+    outfile_fn = sprintf('exp_files/SPSA_results_fulleq_MAPE_%s',SESSION_ID);
     fid = fopen(fn_open,'r');
     %carrier fixing
     %['AA','AS','MQ','OO','QX','UA','US','WN']
@@ -120,7 +123,10 @@ if not(y==2012 & q==1)
     % A=100; %A=100;
     % alpha=.602;
     % gamma=.101;
-
+    
+    
+    %%fclose(fid);
+    
     % west 2014
     %a=1.9;
     a=100000; %a=600; %
@@ -194,13 +200,16 @@ if not(y==2012 & q==1)
     toc
     final_loss=network_game_loss_quadratic(best_theta,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,1,MAPE_incl,outfile_fn);
     toc
+    display(final_loss)
+    fprintf(f_outid, '%d %d %d %f %f %f %f %f %f %f %f %f %f %f %f \n',[double(y),double(q),double(n),final_loss,best_theta']);
+    theta_mat(step_index,:)=[double(y),double(q),double(n),final_loss,best_theta'];
+    %%records{i} = {y,q,n,best_loss, best_theta};
+    %i=i+1;
     
-    
-    records{i} = {y,q,best_loss, best_theta};
-    i=i+1;
 end
-end
-end
+
+fclose(f_outid);
+
 % plot(diff_ests)
 % title('Myopic Best Response Convergence with eps=.1, 6 iterations')
 % legend('AS','UA','US','WN')

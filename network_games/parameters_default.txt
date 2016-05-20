@@ -21,7 +21,10 @@ include_regional_carriers = True
 use_lower_F_bound = True
 # when filtering by individual craft, remove rarely used from count, based on below daily frequency
 craft_freq_cuttoff = .1
-
+# ratio of connecting to total passengers above which an airport considered a hub for given airline
+hub_cuttoff = .4
+#plot hubs by connnection ratio?
+plot_hubs = False
 
 ##BTS data files to use
 #T100 segments file to use
@@ -37,6 +40,8 @@ b43_fn = bts_data/SCHEDULE_B43_%YEAR%.csv
 ac_type_fn = bts_data/AIRCRAFT_TYPE_LOOKUP.csv
 #supplememtary aircraft lookup dict
 ac_lookup_dict = bts_data/ac_lookup_dict_%YEAR%.pickle
+
+
 
 ##nonstop_market_profile output files 
 #primary filename of all carrier-segment data 
@@ -59,10 +64,10 @@ turnaround = 30
 
 ##fleet_assign inputs
 #minimum carrier-segment coverage by hybrid aircraft type
-assign_min_score = 0.95
-#maximum number of partitions in an aircraft's fleet 
+assign_min_score = 0.90
+##maximum number of partitions in an aircraft's fleet 
 assign_max_partitions = 3 
-#maximum number of craft to try partitioning
+##maximum number of craft to try partitioning
 assign_max_partition_set = 11
 
 ##fleet_assign outputs
@@ -70,6 +75,8 @@ assign_max_partition_set = 11
 fleetdist_output_fn= processed_data/fleetdist_%SESSION_ID%.csv
 #airtimes data 
 airtimes_fn_out=processed_data/airtimes_%SESSION_ID%.csv
+#modification to availabity restrictions to account for unused craft, dictionary by carrier/segment
+output_Amod = processed_data/Amod_%SESSION_ID%.pickle
 
 ##create_network_game_datatable parameters
 #player data output file

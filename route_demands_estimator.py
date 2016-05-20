@@ -173,8 +173,8 @@ def run():
            m=create_route_demands_quarter(year=year,quarter=quarter)
     
     #WHY DOES THIS ONLY WORK OUTSIDE FUNCTION?
-    for year in [2011]:
-        for quarter in [1,2,3,4]:
+    for year in [2012]:
+        for quarter in [1]:
             t0=time.time()
             data_dir = 'C:/users/d29905p/Documents/airline_competition_paper/code/network_games/bts_data/'
             outfile = 'route_demand_{year}_Q{quarter}.csv'
