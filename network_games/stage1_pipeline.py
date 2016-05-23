@@ -1298,7 +1298,7 @@ def run():
             else:
                  carrier_indicator_mat.append(ast.literal_eval(line.strip()))
     sio.savemat("carrier2mat.mat", {'date':date_index, 'txt':carrier_text_mat, 'ind':carrier_indicator_mat })         
-    for date_ind in range(17,len(date_index)):
+    for date_ind in range(21,len(date_index)):
             t0 = time.time()
             year = date_index[date_ind][0]
             quarter =  date_index[date_ind][1]

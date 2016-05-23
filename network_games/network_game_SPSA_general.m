@@ -3,7 +3,7 @@ format long
 record_file = 'western_records.txt';
 f_outid = fopen(record_file,'a');
 load('carrier2mat.mat')
-n=25;
+n=10000;
 theta_mat = zeros(size(date,1),15);
 for step_index = 1:size(date,1)
     %%i=1;
