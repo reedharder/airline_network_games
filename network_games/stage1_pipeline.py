@@ -110,6 +110,8 @@ def main_data_pipeline(year = 2014, quarter = 1, session_id="western2014_q3_test
     print("Done")
     #return list of DataFrames used
     return [t100ranked,fleet_lookup,fleet_dist,coef_df,t100sorted]
+    
+    
 '''
 STEP ONE: CREATE NETWORK PROFILE TABLE, MAJOR CARRIERS IN MAJOR MARKETS IN SELECT AIRPORTS
 

@@ -20,7 +20,7 @@ for step_index = 1:size(date,1)
     market_data_mat = csvread(sprintf('processed_data/SPSAdatamat_%s.csv',SESSION_ID),1,2);
     %fn_open = strcat('exp_files/carrier_data_basemod_reg1_2_0.0.txt');
     fn_open = strcat(sprintf('processed_data/carrier_data_%s.txt',SESSION_ID));
-    outfile_fn = sprintf('exp_files/SPSA_results_fulleq_MAPE_%s',SESSION_ID);
+    outfile_fn = sprintf('exp_files/SPSA_results_fulleq_MAPE_%s.txt',SESSION_ID);
     fid = fopen(fn_open,'r');
     %carrier fixing
     %['AA','AS','MQ','OO','QX','UA','US','WN']

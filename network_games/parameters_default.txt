@@ -25,6 +25,7 @@ craft_freq_cuttoff = .1
 hub_cuttoff = .4
 #plot hubs by connnection ratio?
 plot_hubs = False
+# hub output file
 
 ##BTS data files to use
 #T100 segments file to use
@@ -56,6 +57,7 @@ t100_avgd_fn= processed_data/t100_avgd_%SESSION_ID%.csv
 ##get market connection modifiers
 #new carrier segment data file with modified market sizes, according to connecting passengers
 t100ranked_mktmod_output_fn = processed_data/nonstop_competitive_markets_mktmod_%SESSION_ID%.csv
+
 
 
 ##Ftable_new output file: where to save airline fleet data
