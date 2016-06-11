@@ -6,7 +6,7 @@ max_competitors = 3
 #specific markets to ignore in airport network
 ignore_mkts = [] 
 #daily frequency minimum for inclusion of carrier-segment
-freq_cuttoff = 2
+freq_cuttoff = .5
 #market share minimum for inclusion of carrier-segment
 ms_cuttoff = .1
 #minimum frequency share for inclusion of carrier-segment
@@ -22,10 +22,12 @@ use_lower_F_bound = True
 # when filtering by individual craft, remove rarely used from count, based on below daily frequency
 craft_freq_cuttoff = .1
 # ratio of connecting to total passengers above which an airport considered a hub for given airline
-hub_cuttoff = .4
+hub_cuttoff = .7
+low_cost_hub_cuttoff = .4
 #plot hubs by connnection ratio?
 plot_hubs = False
 # hub output file
+hub_out = hubs_%YEAR%_Q%QUARTER%_%SESSION_ID%.pickle
 
 ##BTS data files to use
 #T100 segments file to use

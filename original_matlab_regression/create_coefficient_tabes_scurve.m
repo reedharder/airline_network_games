@@ -15,7 +15,7 @@ end
 %define defaults
 alpha_def = 1.29;
 beta_def = -.0045; %as per original model
-N_def=0;
+N_def=0.5;
 S_def = 10000;
 
 %vary alpha
@@ -96,9 +96,7 @@ for i=1:numel(param_vec)
     xlabel('p1 freq');
     ylabel('p2 freq');
     title(sprintf('alpha = %d, %f | %f | %f  | %f | %f  | %f ',param_vec(i), coefs));
-    h = gca;
-    h.XLim = [0 20];
-    h.YLim = [0 20];
+   r
     saveas(fig,sprintf('alpha_%d',param_vec(i)))
     hold off
 end

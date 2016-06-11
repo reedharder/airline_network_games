@@ -4,8 +4,9 @@ record_file = 'western_records.txt';
 f_outid = fopen(record_file,'a');
 load('carrier2mat.mat')
 n=10000;
-theta_mat = zeros(size(date,1),15);
-for step_index = 1:size(date,1)
+%theta_mat = zeros(size(date,1),15);
+theta_mat = zeros(1,15);
+for step_index =[1]%21:size(date,1) %1:size(date,1)
     %%i=1;
     y=date(step_index,1);
     q=date(step_index,2);
@@ -20,7 +21,7 @@ for step_index = 1:size(date,1)
     market_data_mat = csvread(sprintf('processed_data/SPSAdatamat_%s.csv',SESSION_ID),1,2);
     %fn_open = strcat('exp_files/carrier_data_basemod_reg1_2_0.0.txt');
     fn_open = strcat(sprintf('processed_data/carrier_data_%s.txt',SESSION_ID));
-    outfile_fn = sprintf('exp_files/SPSA_results_fulleq_MAPE_%s.txt',SESSION_ID);
+    outfile_fn = sprintf('exp_files/SPSA_results_fulleq_MAPE_%s_fixedmkts_trn.txt',SESSION_ID);
     fid = fopen(fn_open,'r');
     %carrier fixing
     %['AA','AS','MQ','OO','QX','UA','US','WN']
@@ -155,10 +156,10 @@ for step_index = 1:size(date,1)
     loss_metric  = 1;
     %indices of carriers that have markets to be fixed
     %%fixed_market_carriers = [7,8]; %currently, only WN
-    fixed_market_carriers = [];
+    fixed_market_carriers = [8];
     %the markets of carriers to be fixed, for each carrier
     %%%fixed_markets = {[],[],[],[],[],[],[2],[1 5 10 16]}; %currently,for WN only LAS_LAX, LAX_OAK, OAK_SAN, LAS_PHX and for US only LAS_PDX
-    fixed_markets = {[],[],[],[],[],[],[],[]};
+    fixed_markets = {[],[],[],[],[],[],[],[5 11 18]};
     %LOAD THE MARKETS DATA FILEEEEEEEEE
     %run SPSA
     ys = zeros(2,n);
@@ -179,7 +180,7 @@ for step_index = 1:size(date,1)
         ys(2,k+1)=yminus;
         ghat=(yplus-yminus)./(2*ck*delta);
         theta=theta-ak*ghat;
-        display(k)
+        display(sprintf('%d %d %d', k,y,q))
         display(yminus)
         display(yplus)
         if (yminus < best_loss)

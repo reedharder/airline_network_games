@@ -21,9 +21,9 @@
 function loss = network_game_loss_quadratic(theta,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,file_write,MAPE_incl,outfile_fn)
     %MAPE_incl(1)=0;
     %MAPE_incl(8)=0; %US LAS_PDX
-%     MAPE_incl(9)=0; %WN LAS_PHX
-%     MAPE_incl(22)=0; %WN LAX_OAK
-%     MAPE_incl(44)=0; %WN OAK_SAN
+    MAPE_incl(9)=0; %WN LAS_PHX
+    MAPE_incl(23)=0; %WN LAX_OAK
+    MAPE_incl(43)=0; %WN OAK_SAN
     % 3 player interaction leave-out index mapping
     remove_interaction = [3,2,1];
     %%%PART I: use new theta values to recompute profit function
