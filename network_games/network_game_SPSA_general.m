@@ -15,7 +15,8 @@ for step_index =[1]%21:size(date,1) %1:size(date,1)
     %%%fixed_carrier = fqs{q};
     fixed_carrier = ind{step_index};
     %%%PART I: Load scenario carrier and market data
-    SESSION_ID = sprintf('western%d_q%d',y,q);
+    %%%%%SESSION_ID = sprintf('western%d_q%d',y,q);
+    SESSION_ID = sprintf('q1_2007_test1');
     tic    
     cd('O:\Documents\airline_competition_paper\code\network_games')
     market_data_mat = csvread(sprintf('processed_data/SPSAdatamat_%s.csv',SESSION_ID),1,2);
@@ -156,10 +157,10 @@ for step_index =[1]%21:size(date,1) %1:size(date,1)
     loss_metric  = 1;
     %indices of carriers that have markets to be fixed
     %%fixed_market_carriers = [7,8]; %currently, only WN
-    fixed_market_carriers = [8];
+    fixed_market_carriers = [];
     %the markets of carriers to be fixed, for each carrier
     %%%fixed_markets = {[],[],[],[],[],[],[2],[1 5 10 16]}; %currently,for WN only LAS_LAX, LAX_OAK, OAK_SAN, LAS_PHX and for US only LAS_PDX
-    fixed_markets = {[],[],[],[],[],[],[],[5 11 18]};
+    fixed_markets = {[],[],[],[],[],[],[],[]};
     %LOAD THE MARKETS DATA FILEEEEEEEEE
     %run SPSA
     ys = zeros(2,n);
@@ -198,6 +199,10 @@ for step_index =[1]%21:size(date,1) %1:size(date,1)
     % quarter 4 test on next year
      %1.0e+04 * [   -0.4305    0.0582    0.0098   -1.4157    0.0838    0.0639   -1.6989    0.1313    0.0853   -3.6826    0.2568]';
 %best_theta =    1.0e+04 *    [-2.0532,     0.0980,    0.0600,   -1.3927,    0.0584,    0.0707,   -2.2645,    0.1120,    0.0918,   -3.4868,    0.1909]';
+
+%2007 q1 train
+    %%best_theta_random_holdouts =[-11603.426686 493.581611 290.397465 -16477.141298 654.292682 504.079251 -16050.144715 812.331787 596.355160 -33297.547865 1398.572728 ]';
+    best_theta = [-13875.442234 547.265554 372.246685 -13117.607311 507.244991 527.314169 -17598.800341 924.933723 600.327054 -30710.122244 1277.473450 ]';
     toc
     final_loss=network_game_loss_quadratic(best_theta,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,1,MAPE_incl,outfile_fn);
     toc

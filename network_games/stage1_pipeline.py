@@ -120,6 +120,9 @@ def main_data_pipeline(year = 2014, quarter = 1, alliances = western_alliances, 
 '''
 STEP ONE: CREATE NETWORK PROFILE TABLE, MAJOR CARRIERS IN MAJOR MARKETS IN SELECT AIRPORTS
 
+
+
+
 '''
 
 
@@ -1445,6 +1448,23 @@ def run_results_table():
         pickle.dump(hubs,open(variable_dict['hub_out'],'wb'),3)    
         hubslist.append(hubs)        
            
+           
+           
+           
+def train_test():
+    Ktrain=main_data_pipeline(year = 2007, quarter = 1, alliances = western_alliances, session_id="q1_2007_train1", parameter_file="parameters_default_train.txt", airport_network=western, major_carriers =['AS','US','US','WN'])
+    Ktest=main_data_pipeline(year = 2007, quarter = 1, alliances = western_alliances, session_id="q1_2007_test1", parameter_file="parameters_default_test.txt", airport_network=western, major_carriers =['AS','US','US','WN'])
+
+def constructlist_txt():
+    l = '['
+    vec = []
+    train_rem  =['LAX_SEA', 'LAS_SAN', 'LAS_LAX', 'ONT_SMF', 'ONT_SEA', 'SAN_SFO', 'SEA_SJC', 'PHX_SFO']
+    with open('mvec.txt','r') as infile:
+        for line in infile:
+            vec.append(line.strip())
+    vec = list(set(vec))
+    vec = [v for v in vec if v not in train_rem]
+    test = '[' + ', '.join(vec) + ']'           
 '''
 for q in [1,2,3]:
     K=main_data_pipeline(year=2013, quarters = [q], session_id = "western2013_q%s" % q)
