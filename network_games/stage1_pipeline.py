@@ -25,6 +25,7 @@ import  matplotlib.pyplot as plt
 import itertools
 import scipy.io as sio
 import time
+from statistics import median
 try: 
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
 except NameError:
@@ -215,8 +216,12 @@ def nonstop_market_profile(year, alliances=western_alliances, output_file = "pro
     else:
         expenses_by_type = relevant_p52[['AIRCRAFT_TYPE','UNIQUE_CARRIER','TOT_AIR_OP_EXPENSES', 'TOTAL_AIR_HOURS']].dropna()   
     #calculate expenses per air hour for each type for each airline
+        
     expenses_by_type['EXP_PER_HOUR'] = expenses_by_type['TOT_AIR_OP_EXPENSES'] / expenses_by_type['TOTAL_AIR_HOURS']
-
+    #bad WN data correction
+    if (quarters[0] in [4] and year == 2012) or (quarters[0] in [1] and year == 2013):
+        expenses_by_type[expenses_by_type['UNIQUE_CARRIER']=='WN']   = 
+        
     #average relevant monthly frequency to get daily freqencies
     t100fields =['BI_MARKET','UNIQUE_CARRIER','ORIGIN', 'DEST','AIRCRAFT_TYPE','DEPARTURES_SCHEDULED','DEPARTURES_PERFORMED','SEATS','PASSENGERS','DISTANCE','AIR_TIME']
     #quarterly departures, daily seats, daily passengers, avg distance, total airtime, aggregated across months
@@ -1316,8 +1321,479 @@ def t100_monthly_viz( outdir = "C:/Users/d29905p/documents/airline_competition_p
         plt.savefig(outdir + 't100_%s_pics/%s_%s.jpg' % (year,basefn, market))
         plt.clf()
   
+'''
+write aggregate metrics, market changes, cost/demand changes,  entries, etc to file, category
+return aggregate MAPEs and differences next to eachother (averaged, or MAPED? probably MAPED) for various metrics, as well as market entry, new market, cost change, demand change, frequency change etc. counts
+'''
 
+def run_agg():
+    error_adjust =False
+    three_loop = itertools.cycle([1,2,3])          
+    date_index= []
+    carrier_text_mat = []
+    carrier_indicator_mat = []
+    
+    with open("prelim_carriers.txt","r") as infile:        
+        for line in infile:
+            line_type = next(three_loop)
+            if line_type == 1:
+                date_index.append([int(line.split()[2]), int(line.split()[3][1])])
+            elif line_type ==2:                
+                  carrier_text_mat.append(ast.literal_eval("['" + "','".join(line.strip()[1:-1].split(",")) +"']"))
+            else:
+                 carrier_indicator_mat.append(ast.literal_eval(line.strip()))
+    t = time.time()
+    dict_keys = ['SEATS_PORT_MAPE', 'FREQ_CAR_MED_ER', 'FREQ_CAR_MAPE', 'FREQ_PORT_MAPE', 'SEATS_CAR_EVG_ER', 'FREQ_MKT_EVG_ER', 'FREQ_CAT_MAPE', 'FREQ_CAT_EVG_ER', 'SEATS_CAT_EVG_ER', 'SEATS_TOT_MAPE', 'SEATS_CAT_MAPE', 'FREQ_PORT_EVG_ER', 'FREQ_CAR_EVG_ER', 'FREQ_PORT_MED_ER', 'FREQ_MKT_MAPE', 'SEATS_MKT_MAPE', 'FREQ_CAT_MED_ER', 'SEATS_CAR_MAPE', 'NEW_MKT_ER', 'SEATS_MKT_MED_ER', 'SEATS_PORT_EVG_ER', 'NEW_MKT_MAPE', 'SEATS_CAT_MED_ER', 'FREQ_MKT_MED_ER', 'CHG_MKT_MAPE', 'SEATS_CAR_MED_ER', 'NEW_MKT_CNT', 'SEATS_PORT_MED_ER', 'CHG_MKT_ER', 'FREQ_TOT_ER', 'FREQ_TOT_MAPE', 'SEATS_TOT_ER', 'SEATS_MKT_EVG_ER']
+    MAPE_DICT = {key:np.zeros([len(date_index),len(date_index)]) for key in dict_keys}
+    for cal_ind, calib_date in enumerate(date_index):
+        for val_ind in range(cal_ind,len(date_index)):
+            agg_dict = aggregate_stats_lookahead(calib_date[0], calib_date[1], date_index[val_ind][0], date_index[val_ind][1], error_adjust = error_adjust)
+            for key, value in agg_dict.items():
+                MAPE_DICT[key][cal_ind, val_ind] = value
+            print(['OUTER', cal_ind, val_ind])
+    t2 = time.time() -t
+    print(t2)
+    for key, value in MAPE_DICT.items():
+        np.savetxt('aggregate_metrics/mape_tables/TABLE_' + key + 'erroradj_' + str(error_adjust) +'.txt', value, fmt = '%.4f')
+        
+    
+    '''
+    #example plot
+    MAPE_table = MAPE_DICT['NEW_MKT_ER']#MAPE_DICT['NEW_MKT_MAPE']
+    datapoints = []
+    error_means = []
+    error_errors = []
+    for lookahead in range(0,MAPE_table.shape[0]):
+        errors = np.diagonal(MAPE_table,offset=lookahead)
+        errors = errors[errors>=0]
+        error_mean = np.mean(errors)
+        error_means.append(error_mean)
+        error_std = np.std(errors)
+        error_errors.append(error_std)
+        for error in errors:
+            datapoints.append([lookahead, max(0,error)])
+            
+    plt.scatter(np.array(datapoints)[:,0],np.array(datapoints)[:,1] , facecolors='none',edgecolors='r')
+    plt.errorbar(range(0,MAPE_table.shape[0]), error_means, yerr=error_errors)
+    '''
+def aggregate_stats_lookahead(cal_y, cal_q, val_y, val_q, error_adjust):
+   # cal_y = 2007
+    #cal_q = 1
+    #val_y = 2007
+    #val_q = 4
+    global_major_carriers = ['AS','DL','UA','US','WN','VX'] #FOR NOW, ALLOW CARRIER FREEZING LATER?
+    
+    session_id = 'western%s_q%s'
+    session_cal = session_id % (cal_y, cal_q)
+    session_val = session_id % (val_y, val_q)    
+    calibration_results_table = 'exp_files/SPSA_results_table_CAL_%s.csv' % session_cal
+    calibration_market_profile ='processed_data/nonstop_competitive_markets_mktmod_%s.csv' % session_cal
+    validation_results_table = 'exp_files/validate_SPSA_results_table_%s_theta_%s_%s.csv' % (session_val, cal_y, cal_q)
+    validation_market_profile = 'processed_data/nonstop_competitive_markets_mktmod_%s.csv' % session_val
+    aggregate_metrics_outfile = 'aggregate_metrics/agg_metrics_val_%s_cal_%s_error_adj_%s.txt' % (session_val,session_cal, error_adjust)
+    t0 = time.time()
+    #aggregate table dictionary
+    agg_dict = {}
+    # write metrics file
+    with open(aggregate_metrics_outfile,'w') as outfile:
+            if session_cal == session_val:
+                validation_results_table = calibration_results_table
+          ##  pass
+        ##else:
+            outfile.write("Aggregate Prediction Performance: Calibrated on %s, Validated on %s \n\n" % (session_cal, session_val))
+            rt = pd.read_csv(calibration_results_table, sep='\t')
+            val_rt  =pd.read_csv(validation_results_table, sep='\t')
+            t100ranked_cal = pd.read_csv(calibration_market_profile)
+            t100ranked_val =  pd.read_csv(validation_market_profile)
+            # adjust predictions by training error if requested
+            if error_adjust:
+                rt['DIFF_CAL']=rt['DIFF']
+                val_rt = val_rt.merge( rt[['UNIQUE_CARRIER','BI_MARKET','DIFF_CAL']],how='left',on=['UNIQUE_CARRIER','BI_MARKET'])
+                val_rt['DIFF_CAL']=val_rt['DIFF_CAL'].fillna(0)            
+                val_rt['EST_FREQ'] = val_rt['EST_FREQ'] + val_rt['DIFF_CAL']
+            #compute frequency and seating metrics
+            #get airports for each
+            val_rt['AIRPORTS'] =val_rt.apply(lambda x: x['BI_MARKET'].split('_'), axis=1)
+            val_rt['PORT1'] = val_rt.apply(lambda x: x['AIRPORTS'][0], axis=1)
+            val_rt['PORT2'] = val_rt.apply(lambda x: x['AIRPORTS'][1], axis=1)
+            #aggregate by carrier
+            outfile.write("Aggregate Carrier Performance: FREQ EST_FREQ DIFF ABS_DIFF MAPE \n" )
+            mp = aggregate_metric(category = 'UNIQUE_CARRIER', outfile = outfile, global_major_carriers = global_major_carriers, val_rt = val_rt, seats = False)
+            agg_dict['FREQ_CAR_MAPE'] = mp[0]
+            agg_dict['FREQ_CAR_EVG_ER'] = mp[1]
+            agg_dict['FREQ_CAR_MED_ER'] = mp[2]
+            outfile.write("Aggregate Category Performance: FREQ EST_FREQ DIFF ABS_DIFF MAPE \n")
+            mp = aggregate_metric(category = 'CATEGORY', outfile = outfile, global_major_carriers = global_major_carriers, val_rt = val_rt, seats = False)
+            agg_dict['FREQ_CAT_MAPE'] = mp[0]
+            agg_dict['FREQ_CAT_EVG_ER'] = mp[1]
+            agg_dict['FREQ_CAT_MED_ER'] = mp[2]
+            outfile.write("Aggregate Market Performance: FREQ EST_FREQ DIFF ABS_DIFF MAPE \n" )
+            mp = aggregate_metric(category = 'BI_MARKET', outfile = outfile, global_major_carriers = global_major_carriers, val_rt = val_rt, seats = False)
+            agg_dict['FREQ_MKT_MAPE'] = mp[0]
+            agg_dict['FREQ_MKT_EVG_ER'] = mp[1]
+            agg_dict['FREQ_MKT_MED_ER'] = mp[2]
+            
+          # get aggregate metrics for airports
+            airports = list(set([ port for ports in val_rt[val_rt['UNIQUE_CARRIER'].isin(global_major_carriers)]['AIRPORTS'].tolist() for port in ports]))
+            outfile.write("Aggregate Airport Performance: FREQ EST_FREQ DIFF ABS_DIFF MAPE \n" )
+            ###airports = list(set(val_rt['PORT1'].tolist() + val_rt['PORT2'].tolist() ))
+            abs_errors = []
+            true_freqs = []
+            gb = val_rt[val_rt['UNIQUE_CARRIER'].isin(global_major_carriers)] 
+            for airport in airports:
+                air_rt = gb[(gb['PORT1'] == airport) | (gb['PORT2'] == airport) ]
+                est_freq = air_rt['EST_FREQ'].sum()
+                true_freq = air_rt['DAILY_FREQ'].sum()
+                diff = true_freq-est_freq
+                abs_diff = abs(diff)
+                mape = abs_diff/true_freq
+                abs_errors.append(abs_diff)
+                true_freqs.append(true_freq)
+                outfile.write(" ".join([str(el) for el in [airport, true_freq, est_freq, diff, abs_diff, mape]]) + "\n")
+            if len(true_freqs)>  0:
+                    overall_mape = sum(abs_errors)/sum(true_freqs)
+                    average_abs_error = sum(abs_errors)/len(abs_errors)
+                    median_abs_error = median(abs_errors)
+            else:
+                overall_mape = -9999
+                average_abs_error = -9999
+                median_abs_error = -9999
+            outfile.write("OVERALL MAPE: %s   AVERAGE ABS ERROR: %s     MED ABS ERROR: %s \n\n" % (overall_mape, average_abs_error,median_abs_error ))
+            agg_dict['FREQ_PORT_MAPE'] =overall_mape
+            agg_dict['FREQ_PORT_EVG_ER'] = average_abs_error
+            agg_dict['FREQ_PORT_MED_ER'] = median_abs_error
+            
+            #total frequencies
+            outfile.write("Total Frequency Performance: FREQ EST_FREQ DIFF ABS_DIFF MAPE \n" )
+            est_freq = gb['EST_FREQ'].sum()
+            true_freq = gb['DAILY_FREQ'].sum()
+            diff = true_freq-est_freq
+            abs_diff = abs(diff)
+            mape = abs_diff/true_freq
+            outfile.write(" ".join([str(el) for el in ['ALL', true_freq, est_freq, diff, abs_diff, mape]]) + "\n\n")            
+            agg_dict['FREQ_TOT_MAPE'] = mape
+            agg_dict['FREQ_TOT_ER'] = abs_diff
+          
+            
+            # get aggregate metrics for seats
+            val_rt =val_rt.merge(t100ranked_val[['SEATS_PER_FLIGHT','SEATS','UNIQUE_CARRIER','BI_MARKET']], on =['UNIQUE_CARRIER','BI_MARKET'])
+            val_rt['EST_SEATS'] =  val_rt['SEATS_PER_FLIGHT']*val_rt['EST_FREQ']
+            
+            #aggregate by carrier
+            outfile.write("Aggregate Carrier Seats Performance: SEATS EST_SEATS DIFF ABS_DIFF MAPE \n" )
+            mp = aggregate_metric(category = 'UNIQUE_CARRIER', outfile = outfile, global_major_carriers = global_major_carriers, val_rt = val_rt, seats = True)
+            agg_dict['SEATS_CAR_MAPE'] = mp[0]
+            agg_dict['SEATS_CAR_EVG_ER'] = mp[1]
+            agg_dict['SEATS_CAR_MED_ER'] = mp[2]
+            outfile.write("Aggregate Category Seats Performance: SEATS EST_SEATS DIFF ABS_DIFF MAPE \n")
+            mp = aggregate_metric(category = 'CATEGORY', outfile = outfile, global_major_carriers = global_major_carriers, val_rt = val_rt, seats = True)
+            agg_dict['SEATS_CAT_MAPE'] = mp[0]
+            agg_dict['SEATS_CAT_EVG_ER'] = mp[1]
+            agg_dict['SEATS_CAT_MED_ER'] = mp[2]
+            outfile.write("Aggregate Market Seats Performance: SEATS EST_SEATS DIFF ABS_DIFF MAPE \n" )
+            mp = aggregate_metric(category = 'BI_MARKET', outfile = outfile, global_major_carriers = global_major_carriers, val_rt = val_rt, seats = True)
+            agg_dict['SEATS_MKT_MAPE'] = mp[0]
+            agg_dict['SEATS_MKT_EVG_ER'] = mp[1]
+            agg_dict['SEATS_MKT_MED_ER'] = mp[2]
+            
+            
+                        
+            
+            outfile.write("Aggregate Airport Seats Performance: SEATS EST_SEATS DIFF ABS_DIFF MAPE \n")
+            ###airports = list(set(val_rt['PORT1'].tolist() + val_rt['PORT2'].tolist() ))
+            abs_errors = []
+            true_freqs = []
+            gb = val_rt[val_rt['UNIQUE_CARRIER'].isin(global_major_carriers)] 
+            for airport in airports:
+                air_rt = gb[(gb['PORT1'] == airport) | (gb['PORT2'] == airport) ]
+                est_freq = air_rt['EST_SEATS'].sum()
+                true_freq = air_rt['SEATS'].sum()
+                diff = true_freq-est_freq
+                abs_diff = abs(diff)
+                mape = abs_diff/true_freq
+                abs_errors.append(abs_diff)
+                true_freqs.append(true_freq)
+                outfile.write(" ".join([str(el) for el in [airport, true_freq, est_freq, diff, abs_diff, mape]]) + "\n")
+                if len(true_freqs)>  0:
+                    overall_mape = sum(abs_errors)/sum(true_freqs)
+                    average_abs_error = sum(abs_errors)/len(abs_errors)
+                    median_abs_error = median(abs_errors)
+                else:
+                    overall_mape = -9999
+                    average_abs_error = -9999
+                    median_abs_error = -9999
+            outfile.write("OVERALL MAPE: %s   AVERAGE ABS ERROR: %s     MED ABS ERROR: %s \n\n" % (overall_mape, average_abs_error,median_abs_error ))
+            agg_dict['SEATS_PORT_MAPE'] =overall_mape
+            agg_dict['SEATS_PORT_EVG_ER'] = average_abs_error
+            agg_dict['SEATS_PORT_MED_ER'] = median_abs_error
+          
+            #total frequencies
+            outfile.write("Total Seats Performance: SEATS EST_SEATS DIFF ABS_DIFF MAPE \n")
+            est_freq = gb['EST_SEATS'].sum()
+            true_freq = gb['SEATS'].sum()
+            diff = true_freq-est_freq
+            abs_diff = abs(diff)
+            mape = abs_diff/true_freq
+            outfile.write(" ".join([str(el) for el in ['ALL', true_freq, est_freq, diff, abs_diff, mape]]) + "\n\n")   
+            agg_dict['SEATS_TOT_MAPE'] = mape
+            agg_dict['SEATS_TOT_ER'] = abs_diff
+            
+            #check for new markets
+            #s well as market entry, new market, cost change, demand change, frequency change etc. counts
+            '''            
+            cal_markets = list(set(rt['BI_MARKET'].tolist()))
+            val_markets = list(set(val_rt['BI_MARKET'].tolist()))
+            new_markets = [mkt for mkt in val_markets if mkt not in cal_markets]
+            gb = val_rt.groupby("BI_MARKET")
+            outfile.write("NEW MARKETS \n\n")
+            abs_diffs = []
+            true_freqs = []
+            for new_market in new_markets:
+                outfile.write(new_market+'\n')
+                outfile.write("CARRIER FREQ EST_FREQ ABS_DIFF\n")
+                df = gb.get_group(new_market).reset_index()
+                for i in range(0,df.shape[0]):
+                    outfile.write("%s %s %s %s\n" % (df.loc[i,'UNIQUE_CARRIER'],df.loc[i,'DAILY_FREQ'], df.loc[i,'EST_FREQ'], abs(df.loc[i,'DAILY_FREQ'] -df.loc[i,'EST_FREQ'])))
+                df = df[df['UNIQUE_CARRIER'].isin(global_major_carriers)]
+                mape = df['ABS_DIFF'].sum()/df['DAILY_FREQ'].sum()
+                avg_diff =  df['ABS_DIFF'].mean()
+                outfile.write("MAPE: %s  AVG ABSDIFF: %s\n\n" % (mape, avg_diff))
+                abs_diffs += df['ABS_DIFF'].tolist()
+                true_freqs += df['DAILY_FREQ'].tolist()
+            agg_dict['NEW_MKT_MAPE'] = sum(abs_diffs)/sum(true_freqs)
+            agg_dict['NEW_MKT_ER'] = np.mean(abs_diffs)
+            '''         
+            #check for market entry
+            #s well as market entry, new market, cost change, demand change, frequency change (MOST NTERESTING?) etc. counts
+            cal_markets = list(set(rt['BI_MARKET'].tolist()))
+            val_markets = list(set(val_rt['BI_MARKET'].tolist()))
+            new_markets = [mkt for mkt in val_markets if mkt not in cal_markets]
+            gb_cal  = rt.groupby("BI_MARKET")
+            gb = val_rt.groupby("BI_MARKET")
+            outfile.write("NEW MARKETS \n\n")
+            abs_diffs = []
+            true_freqs = []
+            new_count = 0
+            for new_market in new_markets:
+                df = gb.get_group(new_market).reset_index()
+                if not df[df['UNIQUE_CARRIER'].isin(global_major_carriers)].empty:
+                    outfile.write(new_market+'\n')
+                    outfile.write("CARRIER FREQ EST_FREQ ABS_DIFF\n")
+                    new_count +=1
+                    for i in range(0,df.shape[0]):
+                        outfile.write("%s %s %s %s\n" % (df.loc[i,'UNIQUE_CARRIER'],df.loc[i,'DAILY_FREQ'], df.loc[i,'EST_FREQ'], abs(df.loc[i,'DAILY_FREQ'] -df.loc[i,'EST_FREQ'])))
+                    df = df[df['UNIQUE_CARRIER'].isin(global_major_carriers)]
+                    mape = df['ABS_DIFF'].sum()/df['DAILY_FREQ'].sum()
+                    avg_diff =  df['ABS_DIFF'].mean()
+                    outfile.write("MAPE: %s  AVG ABSDIFF: %s\n\n" % (mape, avg_diff))
+                    abs_diffs += df['ABS_DIFF'].tolist()
+                    true_freqs += df['DAILY_FREQ'].tolist()
+            agg_dict['NEW_MKT_CNT'] = len(new_markets)
+            if new_count > 0:
+                agg_dict['NEW_MKT_MAPE'] = sum(abs_diffs)/sum(true_freqs)            
+                agg_dict['NEW_MKT_ER'] = np.mean(abs_diffs)
+            else:
+                agg_dict['NEW_MKT_MAPE'] = -9999       
+                agg_dict['NEW_MKT_ER'] = -9999
+            
+            outfile.write("CHANGED MARKETS \n\n")
+            abs_diffs = []
+            true_freqs = []
+            mkt_change_count = 0
+            for market in val_markets:
+                if market not in new_markets:
+                    df_cal =gb_cal.get_group(market).reset_index()
+                    df_val=gb.get_group(market).reset_index()
+                    if not df_val[df_val['UNIQUE_CARRIER'].isin(global_major_carriers)].empty :
+                        if sorted(df_cal.UNIQUE_CARRIER.tolist()) != sorted(df_val.UNIQUE_CARRIER.tolist()):
+                            mkt_change_count +=1
+                            outfile.write(market+'\n')
+                            outfile.write("CALIBRATION MARKET\n")
+                            outfile.write("CARRIER FREQ EST_FREQ ABS_DIFF\n")
+                            ##df = gb_cal.get_group(market).reset_index()
+                            for i in range(0,df_cal.shape[0]):
+                                outfile.write("%s %s %s %s\n" % (df_cal.loc[i,'UNIQUE_CARRIER'],df_cal.loc[i,'DAILY_FREQ'], df_cal.loc[i,'EST_FREQ'], abs(df_cal.loc[i,'DAILY_FREQ'] -df_cal.loc[i,'EST_FREQ'])))
+                            outfile.write("VALIDATION MARKET\n")
+                            outfile.write("CARRIER FREQ EST_FREQ ABS_DIFF\n")
+                            ##df = gb.get_group(market).reset_index()
+                            for i in range(0,df_val.shape[0]):
+                                outfile.write("%s %s %s %s\n" % (df_val.loc[i,'UNIQUE_CARRIER'],df_val.loc[i,'DAILY_FREQ'], df_val.loc[i,'EST_FREQ'], abs(df_val.loc[i,'DAILY_FREQ'] -df_val.loc[i,'EST_FREQ'])))
+                            df_val = df_val[df_val['UNIQUE_CARRIER'].isin(global_major_carriers)]
+                            try:
+                                mape = df_val['ABS_DIFF'].sum()/df_val['DAILY_FREQ'].sum()
+                            except:
+                                print(df_val)
+                                print(df_val.shape[0])
+                                print( df_val['DAILY_FREQ'].sum())
+                                mape = df_val['ABS_DIFF'].sum()/df_val['DAILY_FREQ'].sum()
+                            avg_diff =  df_val['ABS_DIFF'].mean()
+                            outfile.write("MAPE: %s  AVG ABSDIFF: %s\n\n" % (mape, avg_diff))
+                            abs_diffs += df_val['ABS_DIFF'].tolist()
+                            true_freqs += df_val['DAILY_FREQ'].tolist()
+                        
+            if mkt_change_count>0:
+                 
+                agg_dict['CHG_MKT_MAPE'] = sum(abs_diffs)/sum(true_freqs)            
+                agg_dict['CHG_MKT_ER'] = np.mean(abs_diffs)
+            else:
+                agg_dict['CHG_MKT_MAPE'] = -9999       
+                agg_dict['CHG_MKT_ER'] = -9999
+    print([session_cal, session_val])
+    print(time.time()-t0)
+    return agg_dict
+    
 
+            
+def aggregate_metric(category, outfile, global_major_carriers, val_rt, seats):
+    gb = val_rt[val_rt['UNIQUE_CARRIER'].isin(global_major_carriers)].groupby(category)
+    abs_errors = []
+    true_freqs = []
+    for group, df in gb:         
+        if not seats:        
+            est_freq = df['EST_FREQ'].sum()
+            true_freq = df['DAILY_FREQ'].sum()
+        else:
+            est_freq = df['EST_SEATS'].sum()
+            true_freq = df['SEATS'].sum()
+        diff = true_freq-est_freq
+        abs_diff = abs(diff)
+        abs_errors.append(abs_diff)
+        true_freqs.append(true_freq)
+        try:
+            mape = abs_diff/true_freq
+        except:
+            print(df)
+        outfile.write(" ".join([str(el) for el in [group, true_freq, est_freq, diff, abs_diff, mape]]) + "\n")
+    if len(true_freqs)>  0:
+        overall_mape = sum(abs_errors)/sum(true_freqs)
+        average_abs_error = sum(abs_errors)/len(abs_errors)
+        median_abs_error = median(abs_errors)
+    else:
+        overall_mape = -9999
+        average_abs_error = -9999
+        median_abs_error = -9999
+    outfile.write("OVERALL MAPE: %s   AVERAGE ABS ERROR: %s     MED ABS ERROR: %s \n\n" % (overall_mape, average_abs_error,median_abs_error ))
+    return [overall_mape, average_abs_error, median_abs_error]
+'''
+creqte tables of MAPE values for lookahead
+'''
+def validation_table_adjusted():
+    '''
+    #quarterly params
+    parameter_file="parameters_default.txt"
+    prelim_file = "prelim_carriers.txt"
+    pickle_out = 'MAPE_tables_adj.pickle'
+    excel_out = 'adj_MAPE_table.txt'
+    rt_out = 'exp_files/SPSA_results_table_CAL_%s.csv' 
+    rt_in =  "exp_files/SPSA_results_fulleq_MAPE_%s.txt"
+    session = "western%s_q%s"
+    out_val ='exp_files/validate_SPSA_results_table_%s.csv'
+    val_rt_in =  "exp_files/validate_SPSA_results_fulleq_MAPE_%s.csv"
+    ses_val ="western%s_q%s_theta_%s_%s"
+    ses_val_profile =  "western%s_q%s"
+    val_out_major_carrier ='exp_files/validate_SPSA_results_table_major_carrier_%s.csv'
+    t100ranked_fn_base_val = "processed_data/nonstop_competitive_markets_mktmod_%s.csv"
+    t100ranked_fn_base =  "processed_data/nonstop_competitive_markets_mktmod_%s.csv"
+    '''
+    #monthly params
+    parameter_file="parameters_monthly_default.txt"
+    prelim_file = "prelim_monthly_full.txt"
+    pickle_out = 'monthly_MAPE_tables_adj.pickle'
+    excel_out = 'monthly_adj_MAPE_table.txt'
+    rt_out = 'exp_files/SPSA_results_table_CAL_%s.csv' 
+    rt_in =  'exp_files/SPSA_results_fulleq_MAPE_%s_fixedmkts_trn.txt'
+    session = "western_monthly1_%s_m%s"
+    out_val ='exp_files/validate_SPSA_results_table_%s.csv'
+    val_rt_in =  "exp_files/validate_monthly_SPSA_results_fulleq_MAPE_%s.csv"
+    ses_val ="western_monthly1_%s_m%s_theta_%s_%s"
+    ses_val_profile =   "western_monthly1_%s_m%s"
+    val_out_major_carrier ='exp_files/monthly_validate_SPSA_results_table_major_carrier_%s.csv'
+    t100ranked_fn_base_val = "processed_data/nonstop_competitive_markets_mktmod_%s.csv"
+    t100ranked_fn_base =  "processed_data/nonstop_competitive_markets_mktmod_%s.csv"
+    month_to_q = {1:1,2:1,3:1,4:2,5:2, 6:2, 7:3, 8:3, 9:3, 10:4, 11:4, 12:4}
+    monthly = True
+    three_loop = itertools.cycle([1,2,3])
+    date_index= []
+    carrier_text_mat = []
+    carrier_indicator_mat = []
+    
+    with open(prelim_file,"r") as infile:        
+        for line in infile:
+            line_type = next(three_loop)
+            if line_type == 1:
+                date_index.append([int(line.split()[2]), int(line.split()[3][1:])])
+            elif line_type ==2:                
+                  carrier_text_mat.append(ast.literal_eval("['" + "','".join(line.strip()[1:-1].split(",")) +"']"))
+            else:
+                 carrier_indicator_mat.append(ast.literal_eval(line.strip()))  
+    date_indices_used = [1, 4, 7, 10,13, 16, 19, 22,25, 28, 31,34, 37, 40, 43, 46, 49, 52, 55,  58,61, 64, 67,70, 73, 76, 79, 82, 85, 88, 91 , 94] 
+    #initialize adjusted MAPE table
+    adj_MAPE_table = np.zeros([len(date_indices_used),len(date_indices_used)]) 
+    MAPE_table = np.zeros([len(date_indices_used),len(date_indices_used)])     
+    i=0     
+           
+    for date_ind, calib_date in enumerate(date_index):
+        if date_ind in date_indices_used:
+            #create calibration results table
+            year = date_index[date_ind][0]
+            subdate =  date_index[date_ind][1]   
+            if monthly == True:
+                quarter = month_to_q[subdate]
+            else:
+                quarter = subdate
+            session_id=session % (year,subdate)
+            variable_dict = parse_params(parameter_file,str_replacements={'%YEAR%':str(year), '%QUARTER%':str(quarter),'%SESSION_ID%':session_id})
+            hub_sets =  pickle.load(open(variable_dict['hub_out'],'rb'))
+            rt = create_results_table(hub_sets, outfile_fn=rt_out %  session_id, input_fn =rt_in %  session_id, t100ranked_fn =t100ranked_fn_base %  session_id)
+            cal_major_carriers = [txt for txt, ind in zip(carrier_text_mat[date_ind],carrier_indicator_mat[date_ind] ) if ind==0]
+            rt  = rt[rt.UNIQUE_CARRIER.isin(cal_major_carriers)]
+            MAPE_table[i,i] = sum(abs(rt['EST_FREQ'] - rt['DAILY_FREQ']))/sum(rt['DAILY_FREQ'])
+            rt['DIFF_CAL']=rt['DIFF']
+            j=date_indices_used.index(date_ind) + 1
+            for val_ind in range(date_ind+1,len(date_index)):
+                 
+                 if val_ind in date_indices_used:
+                     #create calibration results table
+                    year_val = date_index[val_ind][0]
+                    subdate_val =  date_index[val_ind][1]        
+                    session_id_val=ses_val   % (year_val,subdate_val,year,subdate)
+                    session_id_profile =ses_val_profile % (year_val,subdate_val)
+                    if monthly == True:
+                        quarter_val = month_to_q[subdate_val]
+                    else:
+                        quarter_val = subdate_val
+                    variable_dict = parse_params(parameter_file,str_replacements={'%YEAR%':str(year), '%QUARTER%':str(quarter_val),'%SESSION_ID%':session_id})
+                    hub_sets =  hub_sets = pickle.load(open(variable_dict['hub_out'],'rb'))
+                    outfile_fn=out_val %  session_id_val
+                    val_rt = create_results_table(hub_sets, outfile_fn=outfile_fn, input_fn =val_rt_in %  session_id_val, t100ranked_fn = t100ranked_fn_base_val %  session_id_profile)
+                    val_rt = val_rt.merge( rt[['UNIQUE_CARRIER','BI_MARKET','DIFF_CAL']],how='left',on=['UNIQUE_CARRIER','BI_MARKET'])
+                    val_rt['DIFF_CAL']=val_rt['DIFF_CAL'].fillna(0)            
+                    val_rt['ADJ_FREQ'] = val_rt['EST_FREQ'] + val_rt['DIFF_CAL']
+                    val_rt.loc[val_rt['ADJ_FREQ']<0,'ADJ_FREQ'] = 0
+                    val_major_carriers = [txt for txt, ind in zip(carrier_text_mat[val_ind],carrier_indicator_mat[val_ind] ) if ind==0]
+                    val_rt  = val_rt[val_rt.UNIQUE_CARRIER.isin(val_major_carriers)]
+                    mape = sum(abs(val_rt['EST_FREQ'] - val_rt['DAILY_FREQ']))/sum(val_rt['DAILY_FREQ'])
+                    adj_mape =sum(abs(val_rt['ADJ_FREQ'] - val_rt['DAILY_FREQ']))/sum(val_rt['DAILY_FREQ'])
+                    val_rt['FULL_MAPE'] = np.repeat(mape,val_rt.shape[0])
+                    val_rt['FULL_ADJ_MAPE'] = np.repeat(adj_mape,val_rt.shape[0])
+                    outfile_fn=val_out_major_carrier %  session_id_val
+                    val_rt.to_csv(outfile_fn,sep='\t')
+                    adj_MAPE_table[i,j] = adj_mape
+                    MAPE_table[i,j] = mape
+                    print([i,j])
+                    j+=1
+            i+=1
+    #compute avg lookahead errors
+    lookahead_MAPE = np.zeros([1,len(date_index)])
+    lookahead_ADJ_MAPE = np.zeros([1,len(date_index)])
+    for lookahead in range(0,len(date_index)):
+        lookahead_MAPE[0,lookahead] = np.mean(np.diagonal(MAPE_table,offset=lookahead))
+        lookahead_ADJ_MAPE[0,lookahead] = np.mean(np.diagonal(adj_MAPE_table,offset=lookahead))
+        
+    pickle.dump({'MAPE_table':MAPE_table,'lookahead_MAPE':lookahead_MAPE,'adj_MAPE_table':adj_MAPE_table,'lookahead_ADJ_MAPE': lookahead_ADJ_MAPE},open(pickle_out,'wb'),3)     
+    
+    np.savetxt(excel_out, np.array(adj_MAPE_table), fmt='%.4f', delimiter="\t")
+    
 
 def run():      
     carrier_dict = {}
@@ -1465,6 +1941,12 @@ def constructlist_txt():
     vec = list(set(vec))
     vec = [v for v in vec if v not in train_rem]
     test = '[' + ', '.join(vec) + ']'           
+    
+    
+    
+    
+    
+
 '''
 for q in [1,2,3]:
     K=main_data_pipeline(year=2013, quarters = [q], session_id = "western2013_q%s" % q)

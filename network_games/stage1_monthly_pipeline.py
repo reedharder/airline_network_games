@@ -49,25 +49,78 @@ western_alliances = {('AS','QX'):(1,2007,12,2015),('DL','MQ'):(1,2007,2,2012),('
 
     
 def run_monthly_t100_setup():
-    years = range(2007,2015)
-    months = range(1,13)
-    session = 'monthly1_%s_m%s'
+    #months to create full data files for each years
+    months_each_year = [2, 5, 8, 11]
+    prelim_carrier_fn = 'prelim_monthly_full.txt'
+    parameter_file = 'parameters_monthly_default.txt'
+    # create monthly market profiles
+    years = list(range(2007,2015))
+    months = list(range(1,13))
+    session = 'western_monthly1_%s_m%s'
     month_to_q = {1:1,2:1,3:1,4:2,5:2, 6:2, 7:3, 8:3, 9:3, 10:4, 11:4, 12:4}
+    prelim_outfile = "prelim_monthly_%s.txt"
     for year in years:
-        tr = nonstop_market_profile_monthly(alliances=western_alliances, prelim_outfile = "prelim_monthly.txt", output_file = "processed_data/monthly_market_profile_%s.csv" % session,year = year, months=list(months), \
-    t100_fn="bts_data/T100_%s.csv" % year,p52_fn="bts_data/SCHEDULE_P52_%s.csv" % year , t100_avgd_fn="processed_data/t100_avgd_m%s.csv" % session, merge_HP=True, \
+        tr = nonstop_market_profile_monthly(global_major_carriers = ['AS','DL','UA','US','WN','VX'],alliances=western_alliances, prelim_outfile = prelim_outfile, output_file = "processed_data/monthly_market_profile_%s.csv" % session,year = year, months=list(months), \
+    t100_fn="bts_data/T100_%s.csv" % year,p52_fn="bts_data/SCHEDULE_P52_%s.csv" % year , t100_avgd_fn="processed_data/t100_avgd_%s.csv" % session, merge_HP=True, \
     t100_summed_fn = 'processed_data/t100_summed_%s.csv' % session, t100_craft_avg_fn='processed_data/t100_craft_avg_%s.csv' % session,\
     ignore_mkts = [], craft_freq_cuttoff = .01,max_competitors=3,\
     freq_cuttoff = .5, ms_cuttoff=.05, fs_cuttoff = .05, only_big_carriers=False, airports = western)
+    
+    # merge major carrier files
+    with open(prelim_carrier_fn,'w') as full_prelim_outfile:
+        for year in years: 
+            with open('prelim_monthly_%s.txt' % year,'r') as prelim_infile:
+                for line in prelim_infile:
+                    full_prelim_outfile.write(line)
+                    
+     # parse active carrier file
+    carrier_dict = {}
+    three_loop = itertools.cycle([1,2,3])
+    date_index= []
+    carrier_text_mat = []
+    carrier_indicator_mat = []    
+   
+    with open(prelim_carrier_fn,"r") as infile:        
+        for line in infile:
+            line_type = next(three_loop)
+            if line_type == 1: # append year, month
+                date_index.append([int(line.split()[2]), int(line.split()[3][1:])])
+            elif line_type ==2:                
+                  carrier_text_mat.append(ast.literal_eval("['" + "','".join(line.strip()[1:-1].split(",")) +"']"))
+            else:
+                 carrier_indicator_mat.append(ast.literal_eval(line.strip()))
+                 
+    
+    # save date indexing as matlab file
+    sio.savemat("carrier2mat_monthly.mat", {'date':date_index, 'txt':carrier_text_mat, 'ind':carrier_indicator_mat })         
+    #create data files for relevant dates
+    date_indices_used = []
+    for date_ind in range(0,len(date_index)):#range(21,len(date_index)):
+           
+            year = date_index[date_ind][0]
+            month =  date_index[date_ind][1]
+            if month in months_each_year: 
+                date_indices_used.append(date_ind)
+                t0 = time.time()
+                major_carriers = [txt for txt, ind in zip(carrier_text_mat[date_ind],carrier_indicator_mat[date_ind] ) if ind==0]  
+               
+                K=main_data_pipeline_monthly(year = year, month =month, alliances = western_alliances, parameter_file =parameter_file , session_id=session % (year,month),airport_network=western, major_carriers =major_carriers)
+                print([year,month])
+                print(K[0].UNIQUE_CARRIER.value_counts().keys().tolist())
+                print( time.time()-t0)
+    
+    return date_indices_used
 
-
-
-def nonstop_market_profile_monthly(alliances=western_alliances, prelim_outfile = "prelim_monthly.txt", output_file = "processed_data/monthly_market_profile_%sm%s.csv",year = 2007, months=list(range(1,13)), \
+def nonstop_market_profile_monthly(global_major_carriers = ['AS','DL','UA','US','WN','VX'],alliances=western_alliances, prelim_outfile = "prelim_monthly_%s.txt", output_file = "processed_data/monthly_market_profile_%sm%s.csv",year = 2007, months=list(range(1,13)), \
     t100_fn="bts_data/T100_%s.csv",p52_fn="bts_data/SCHEDULE_P52_%s.csv", t100_avgd_fn="processed_data/t100_avgd_m%s.csv", merge_HP=True, \
     t100_summed_fn = 'processed_data/t100_summed_m%s.csv', t100_craft_avg_fn='processed_data/t100_craft_avg_m%s.csv',\
     ignore_mkts = [], craft_freq_cuttoff = .01,max_competitors=3,\
     freq_cuttoff = .5, ms_cuttoff=.05, fs_cuttoff = .05, only_big_carriers=False, airports = western):
-        
+    
+    
+    # prelim monthly file
+    
+    prelim_outfile = prelim_outfile % year
     #dictionary of month to quarter
     month_to_q = {1:1,2:1,3:1,4:2,5:2, 6:2, 7:3, 8:3, 9:3, 10:4, 11:4, 12:4}
     
@@ -145,15 +198,15 @@ def nonstop_market_profile_monthly(alliances=western_alliances, prelim_outfile =
     t100fields =['MONTH', 'QUARTER','BI_MARKET','UNIQUE_CARRIER','ORIGIN', 'DEST','AIRCRAFT_TYPE','DEPARTURES_SCHEDULED','DEPARTURES_PERFORMED','SEATS','PASSENGERS','DISTANCE','AIR_TIME']
     #monthly departures, daily seats, daily passengers, avg distance, total airtime, aggregated across months
     t100_summed = relevant_t100[relevant_t100['MONTH'].apply( lambda x: not np.isnan(x))]
-    
-    #convert airtime to hours
+     #convert airtime to hours
     t100_summed['AIR_HOURS']=(t100_summed['AIR_TIME']/60)
     t100_summed['FLIGHT_TIME']=t100_summed['AIR_HOURS']/t100_summed['DEPARTURES_PERFORMED']
+    # convrt seats per flight 
     #get frequency per day
     t100_summed['DAILY_FREQ']=t100_summed['DEPARTURES_SCHEDULED']/t100_summed['MONTH'].apply(lambda row: days_month_dict[int(row)]) 
     #get average number available seats per flight
     t100_summed['SEATS_PER_FLIGHT'] = t100_summed['SEATS']/t100_summed['DEPARTURES_PERFORMED']  #CHECK NUMBERS
-    
+   
     #MAKE SURE MONTHS PRESERVED BELOW
     
     
@@ -169,7 +222,11 @@ def nonstop_market_profile_monthly(alliances=western_alliances, prelim_outfile =
     t100_summed = t100_summed[t100_summed['PASSENGERS']>0]
     t100_summed = t100_summed[t100_summed['DEPARTURES_SCHEDULED']>0] 
     #additional filters: frequency, unrealistic seats per flight 
-    t100_summed = t100_summed[t100_summed['DAILY_FREQ']>=craft_freq_cuttoff]
+    t100_summed = t100_summed[t100_summed['DAILY_FREQ']>=craft_freq_cuttoff] 
+    #convert seats and passengers to daily
+    t100_summed['SEATS']=t100_summed['SEATS']/t100_summed['MONTH'].apply(lambda row: days_month_dict[int(row)]) 
+    t100_summed['PASSENGERS']=t100_summed['PASSENGERS']/t100_summed['MONTH'].apply(lambda row: days_month_dict[int(row)]) 
+   
     #check for extreme seat numbers
     if t100_summed[(t100_summed['SEATS_PER_FLIGHT']<10) | (t100_summed['SEATS_PER_FLIGHT']>500)].shape[0]>0:
         print("Average seat anomalies:")
@@ -241,9 +298,9 @@ def nonstop_market_profile_monthly(alliances=western_alliances, prelim_outfile =
             t100ranked = t100ranked[~t100ranked['BI_MARKET'].isin(rem_markets)]
             new_count = t100ranked.shape[0]
             carriers = sorted(list(set(t100ranked.UNIQUE_CARRIER.tolist())))
-            outfile.write("# carriers %s Q%s \n" % (year, month))
+            outfile.write("# carriers %s M%s \n" % (year, month))
             outfile.write("[" + ",".join(carriers) + "]\n")
-            outfile.write("[" + ",".join([" " for carrier in carriers]) + "]\n")
+            outfile.write("[" + ",".join([' 0' if carrier in global_major_carriers else ' 1' for carrier in carriers]) + "]\n")
             print('removed %s carrier-segments with alliance containing markets, out of %s in total' % (original_count - new_count, original_count))
             t100ranked.to_csv(output_file % (year, month))    
             print([year,month])    
@@ -253,19 +310,14 @@ def nonstop_market_profile_monthly(alliances=western_alliances, prelim_outfile =
     return t100ranked
     
 #creates data tables necessary for best response game
-def main_data_pipeline(year = 2014, quarter = 1, alliances = western_alliances, session_id="western2014_q3_test", parameter_file="parameters_default.txt", airport_network=western, major_carriers =major_carriers_west_2014):
+def main_data_pipeline_monthly(year = 2014, month = 1, alliances = western_alliances, session_id='session', parameter_file="parameters_monthly_default.txt", airport_network=western, major_carriers =major_carriers_west_2014):
     #parse parameters file, extract variables 
+    ##output_file = "processed_data/monthly_market_profile_%s.csv" % session_id
+    month_to_q = {1:1,2:1,3:1,4:2,5:2, 6:2, 7:3, 8:3, 9:3, 10:4, 11:4, 12:4}
+    quarter  = month_to_q[month]
     variable_dict = parse_params(parameter_file,str_replacements={'%YEAR%':str(year), '%QUARTER%':str(quarter),'%SESSION_ID%':session_id})
     
-    #create t100ranked file and supplementary data files (primary data on carrier-segment combos)
-    print("creating carrier-segment data files...")
-    t100ranked = nonstop_market_profile(year = year,  alliances = western_alliances, output_file = variable_dict['t100ranked_output_fn'],aotp_fn = variable_dict['aotp_fn'], quarters=[quarter], \
-        t100_fn=variable_dict['t100_fn'],p52_fn=variable_dict['p52_fn'], t100_avgd_fn=variable_dict['t100_avgd_fn'], merge_HP=variable_dict['merge_HP'], \
-        t100_summed_fn = variable_dict['t100_summed_fn'], t100_craft_avg_fn=variable_dict['t100_craft_avg_fn'],\
-        ignore_mkts  = variable_dict['ignore_mkts'],max_competitors = variable_dict['max_competitors'],\
-        craft_freq_cuttoff = variable_dict['craft_freq_cuttoff'], \
-        freq_cuttoff = variable_dict['freq_cuttoff'], ms_cuttoff=variable_dict['ms_cuttoff'], fs_cuttoff=variable_dict['fs_cuttoff'], only_big_carriers=variable_dict['only_big_carriers'], carriers_of_interest = variable_dict['carriers_of_interest'],airports = airport_network)
-    
+       
     #modify carrier-segment market sizes by considering connecting passengers
     print("modifing market sizes via connecting passenge..." )   
     t100ranked=get_market_connection_modifiers(major_carriers = major_carriers,  market_table_fn= variable_dict['t100ranked_output_fn'],outfile=variable_dict['t100ranked_mktmod_output_fn'],route_demands_fn = variable_dict['route_demands_fn'])

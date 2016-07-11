@@ -27,7 +27,7 @@ low_cost_hub_cuttoff = .4
 #plot hubs by connnection ratio?
 plot_hubs = False
 # hub output file
-hub_out = hubs_%YEAR%_Q%QUARTER%_%SESSION_ID%.pickle
+hub_out = bts_data/hubs_%YEAR%_Q%QUARTER%_%SESSION_ID%.pickle
 
 ##BTS data files to use
 #T100 segments file to use

@@ -1,12 +1,30 @@
 % Stochastic Optimization fitting: SPSA 
-format long
-record_file = 'western_records.txt';
-f_outid = fopen(record_file,'a');
-load('carrier2mat.mat')
+
+% select files
+record_file = 'western_records_monthly.txt'; % 'western_records_monthly.txt' or 'western_records.txt'
+carrier_file = 'carrier2mat_monthly.mat'; % 'carrier2mat_monthly.mat' or 'carrier2mat.mat'
+%select number of SPSA iterations
 n=10000;
+% select date indices to use
+date_indices = [1, 4, 7, 10,13, 16, 19, 22,25, 28, 31,34, 37, 40, 43, 46, 49, 52, 55,  58,61, 64, 67,70, 73, 76, 79, 82, 85, 88, 91 , 94] + 1; %1:size(date,1) for all
+%select session id base 
+sessionid_base  = 'western_monthly1_%d_m%d'; % for monthly : 'western_monthly1_%d_m%d'  ;  for quarterly: 'western%d_q%d'
+% select parameters for SPSA
+a=100000; 
+c=20;
+A=100; 
+alpha=.602;
+gamma=.101;
+
+
+format long
+f_outid = fopen(record_file,'a');
+% loads 'date' (date index)
+load(carrier_file)
 %theta_mat = zeros(size(date,1),15);
-theta_mat = zeros(1,15);
-for step_index =[1]%21:size(date,1) %1:size(date,1)
+theta_mat = zeros(size(date_indices,1),15);
+step_zeroed = 1;
+for step_index =date_indices%21:size(date,1) %1:size(date,1)
     %%i=1;
     y=date(step_index,1);
     q=date(step_index,2);
@@ -15,8 +33,8 @@ for step_index =[1]%21:size(date,1) %1:size(date,1)
     %%%fixed_carrier = fqs{q};
     fixed_carrier = ind{step_index};
     %%%PART I: Load scenario carrier and market data
-    %%%%%SESSION_ID = sprintf('western%d_q%d',y,q);
-    SESSION_ID = sprintf('q1_2007_test1');
+    %%%%%SESSION_ID = sprintf('western%d_q%d',y,q); % for quarterlly
+    SESSION_ID = sprintf(sessionid_base,y,q);
     tic    
     cd('O:\Documents\airline_competition_paper\code\network_games')
     market_data_mat = csvread(sprintf('processed_data/SPSAdatamat_%s.csv',SESSION_ID),1,2);
@@ -129,14 +147,14 @@ for step_index =[1]%21:size(date,1) %1:size(date,1)
     
     %%fclose(fid);
     
-    % west 2014
-    %a=1.9;
-    a=100000; %a=600; %
-    c=20;
-    %c=20;
-    A=100; %A=100;
-    alpha=.602;
-    gamma=.101;
+%     % west 2014
+%     %a=1.9;
+%     a=100000; %a=600; %
+%     c=20;
+%     %c=20;
+%     A=100; %A=100;
+%     alpha=.602;
+%     gamma=.101;
 
     %base coefficients
     base_coef=[-150395.5496,-10106.6470,13135.9798,13136.1506,264.4822,-376.1793,-376.1781,270.2080,270.1927,-260.0113,...
@@ -202,16 +220,16 @@ for step_index =[1]%21:size(date,1) %1:size(date,1)
 
 %2007 q1 train
     %%best_theta_random_holdouts =[-11603.426686 493.581611 290.397465 -16477.141298 654.292682 504.079251 -16050.144715 812.331787 596.355160 -33297.547865 1398.572728 ]';
-    best_theta = [-13875.442234 547.265554 372.246685 -13117.607311 507.244991 527.314169 -17598.800341 924.933723 600.327054 -30710.122244 1277.473450 ]';
+    %%%best_theta_train = [-13875.442234 547.265554 372.246685 -13117.607311 507.244991 527.314169 -17598.800341 924.933723 600.327054 -30710.122244 1277.473450 ]';
     toc
     final_loss=network_game_loss_quadratic(best_theta,theta_norm,coef_map,base_coef,loss_metric,carriers,market_data_mat,fixed_carrier,fixed_market_carriers,fixed_markets,num_carriers,segment_competitors,Market_freqs,empirical_freqs,1,MAPE_incl,outfile_fn);
     toc
     display(final_loss)
     fprintf(f_outid, '%d %d %d %f %f %f %f %f %f %f %f %f %f %f %f \n',[double(y),double(q),double(n),final_loss,best_theta']);
-    theta_mat(step_index,:)=[double(y),double(q),double(n),final_loss,best_theta'];
+    theta_mat(step_zeroed,:)=[double(y),double(q),double(n),final_loss,best_theta'];
     %%records{i} = {y,q,n,best_loss, best_theta};
     %i=i+1;
-    
+    step_zeroed  =step_zeroed + 1;
 end
 
 fclose(f_outid);
