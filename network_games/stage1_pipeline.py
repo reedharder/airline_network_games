@@ -219,8 +219,8 @@ def nonstop_market_profile(year, alliances=western_alliances, output_file = "pro
         
     expenses_by_type['EXP_PER_HOUR'] = expenses_by_type['TOT_AIR_OP_EXPENSES'] / expenses_by_type['TOTAL_AIR_HOURS']
     #bad WN data correction
-    if (quarters[0] in [4] and year == 2012) or (quarters[0] in [1] and year == 2013):
-        expenses_by_type[expenses_by_type['UNIQUE_CARRIER']=='WN']   = 
+    ###if (quarters[0] in [4] and year == 2012) or (quarters[0] in [1] and year == 2013):
+       ### expenses_by_type[expenses_by_type['UNIQUE_CARRIER']=='WN']   = 
         
     #average relevant monthly frequency to get daily freqencies
     t100fields =['BI_MARKET','UNIQUE_CARRIER','ORIGIN', 'DEST','AIRCRAFT_TYPE','DEPARTURES_SCHEDULED','DEPARTURES_PERFORMED','SEATS','PASSENGERS','DISTANCE','AIR_TIME']
@@ -1360,13 +1360,17 @@ def run_agg():
     '''
     #example plot
     MAPE_table = MAPE_DICT['NEW_MKT_ER']#MAPE_DICT['NEW_MKT_MAPE']
+    MAPE_table = np.loadtxt('adj_MAPE_table.txt')
+    MAPE_table = np.loadtxt('aggregate_metrics/MAPE_tables/TABLE_NEW_MKT_ERerroradj_False.txt')
+    MAPE_table = np.loadtxt('aggregate_metrics/MAPE_tables/TABLE_NEW_MKT_MAPEerroradj_False.txt')
+    MAPE_table = np.loadtxt('MAPE_table.txt')
     datapoints = []
     error_means = []
     error_errors = []
     for lookahead in range(0,MAPE_table.shape[0]):
         errors = np.diagonal(MAPE_table,offset=lookahead)
         errors = errors[errors>=0]
-        error_mean = np.mean(errors)
+        error_mean = np.median(errors)
         error_means.append(error_mean)
         error_std = np.std(errors)
         error_errors.append(error_std)
@@ -1375,6 +1379,8 @@ def run_agg():
             
     plt.scatter(np.array(datapoints)[:,0],np.array(datapoints)[:,1] , facecolors='none',edgecolors='r')
     plt.errorbar(range(0,MAPE_table.shape[0]), error_means, yerr=error_errors)
+    plt.xlabel('Number of Quarters Looking Ahead')
+    plt.ylabel('MAPE')
     '''
 def aggregate_stats_lookahead(cal_y, cal_q, val_y, val_q, error_adjust):
    # cal_y = 2007

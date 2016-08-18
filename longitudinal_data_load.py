@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-ls
+
 """
 Created on Tue Sep 22 15:26:47 2015
 
@@ -29,6 +30,8 @@ for AOTP, in market if 10 day moving average of marketshare/frequency meets cutt
 
 some day, try shipping airline competition
 '''
+
+
 import io
 import zipfile
 import sys
@@ -36,197 +39,80 @@ import requests
 import os 
 import time
 
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import pylab
 
-oep35 = ['ATL',
- 'BOS',
- 'BWI',
- 'CLE',
- 'CLT',
- 'CVG',
- 'DCA',
- 'DEN',
- 'DFW',
- 'DTW',
- 'EWR',
- 'FLL',
- 'HNL',
- 'IAD',
- 'IAH',
- 'JFK',
- 'LAS',
- 'LAX',
- 'LGA',
- 'MCO',
- 'MDW',
- 'MEM',
- 'MIA',
- 'MSP',
- 'ORD',
- 'PDX',
- 'PHL',
- 'PHX',
- 'PIT',
- 'SAN',
- 'SEA',
- 'SFO',
- 'SLC',
- 'STL',
- 'TPA']
-
-AOTP_POST='''UserTableName=On_Time_Performance&DBShortName=On_Time&RawDataTable=T_ONTIME&sqlstr=+SELECT+YEAR%2CQUARTER
-%2CMONTH%2CDAY_OF_MONTH%2CDAY_OF_WEEK%2CFL_DATE%2CUNIQUE_CARRIER%2CORIGIN_AIRPORT_ID%2CORIGIN%2CDEST_AIRPORT_ID
-%2CDEST%2CCANCELLED%2CDIVERTED%2CDISTANCE%2CCARRIER_DELAY%2CLATE_AIRCRAFT_DELAY+FROM++T_ONTIME+WHERE
-+Month+%3D2+AND+YEAR%3D2007&varlist=YEAR%2CQUARTER%2CMONTH%2CDAY_OF_MONTH%2CDAY_OF_WEEK%2CFL_DATE%2CUNIQUE_CARRIER
-%2CORIGIN_AIRPORT_ID%2CORIGIN%2CDEST_AIRPORT_ID%2CDEST%2CCANCELLED%2CDIVERTED%2CDISTANCE%2CCARRIER_DELAY
-%2CLATE_AIRCRAFT_DELAY&grouplist=&suml=&sumRegion=&filter1=title%3D&filter2=title%3D&geo=All%A0&time
-={month}&timename=Month&GEOGRAPHY=All&XYEAR={year}&FREQUENCY={frequency}&VarName=YEAR&VarDesc=Year&VarType=Num&VarName
-=QUARTER&VarDesc=Quarter&VarType=Num&VarName=MONTH&VarDesc=Month&VarType=Num&VarName=DAY_OF_MONTH&VarDesc
-=DayofMonth&VarType=Num&VarName=DAY_OF_WEEK&VarDesc=DayOfWeek&VarType=Num&VarName=FL_DATE&VarDesc=FlightDate
-&VarType=Char&VarName=UNIQUE_CARRIER&VarDesc=UniqueCarrier&VarType=Char&VarDesc=AirlineID&VarType=Num
-&VarDesc=Carrier&VarType=Char&VarDesc=TailNum&VarType=Char&VarDesc=FlightNum&VarType=Char&VarName=ORIGIN_AIRPORT_ID
-&VarDesc=OriginAirportID&VarType=Num&VarDesc=OriginAirportSeqID&VarType=Num&VarDesc=OriginCityMarketID
-&VarType=Num&VarName=ORIGIN&VarDesc=Origin&VarType=Char&VarDesc=OriginCityName&VarType=Char&VarDesc=OriginState
-&VarType=Char&VarDesc=OriginStateFips&VarType=Char&VarDesc=OriginStateName&VarType=Char&VarDesc=OriginWac
-&VarType=Num&VarName=DEST_AIRPORT_ID&VarDesc=DestAirportID&VarType=Num&VarDesc=DestAirportSeqID&VarType
-=Num&VarDesc=DestCityMarketID&VarType=Num&VarName=DEST&VarDesc=Dest&VarType=Char&VarDesc=DestCityName
-&VarType=Char&VarDesc=DestState&VarType=Char&VarDesc=DestStateFips&VarType=Char&VarDesc=DestStateName
-&VarType=Char&VarDesc=DestWac&VarType=Num&VarDesc=CRSDepTime&VarType=Char&VarDesc=DepTime&VarType=Char
-&VarDesc=DepDelay&VarType=Num&VarDesc=DepDelayMinutes&VarType=Num&VarDesc=DepDel15&VarType=Num&VarDesc
-=DepartureDelayGroups&VarType=Num&VarDesc=DepTimeBlk&VarType=Char&VarDesc=TaxiOut&VarType=Num&VarDesc
-=WheelsOff&VarType=Char&VarDesc=WheelsOn&VarType=Char&VarDesc=TaxiIn&VarType=Num&VarDesc=CRSArrTime&VarType
-=Char&VarDesc=ArrTime&VarType=Char&VarDesc=ArrDelay&VarType=Num&VarDesc=ArrDelayMinutes&VarType=Num&VarDesc
-=ArrDel15&VarType=Num&VarDesc=ArrivalDelayGroups&VarType=Num&VarDesc=ArrTimeBlk&VarType=Char&VarName
-=CANCELLED&VarDesc=Cancelled&VarType=Num&VarDesc=CancellationCode&VarType=Char&VarName=DIVERTED&VarDesc
-=Diverted&VarType=Num&VarDesc=CRSElapsedTime&VarType=Num&VarDesc=ActualElapsedTime&VarType=Num&VarDesc
-=AirTime&VarType=Num&VarDesc=Flights&VarType=Num&VarName=DISTANCE&VarDesc=Distance&VarType=Num&VarDesc
-=DistanceGroup&VarType=Num&VarName=CARRIER_DELAY&VarDesc=CarrierDelay&VarType=Num&VarDesc=WeatherDelay
-&VarType=Num&VarDesc=NASDelay&VarType=Num&VarDesc=SecurityDelay&VarType=Num&VarName=LATE_AIRCRAFT_DELAY
-&VarDesc=LateAircraftDelay&VarType=Num&VarDesc=FirstDepTime&VarType=Char&VarDesc=TotalAddGTime&VarType
-=Num&VarDesc=LongestAddGTime&VarType=Num&VarDesc=DivAirportLandings&VarType=Num&VarDesc=DivReachedDest
-&VarType=Num&VarDesc=DivActualElapsedTime&VarType=Num&VarDesc=DivArrDelay&VarType=Num&VarDesc=DivDistance
-&VarType=Num&VarDesc=Div1Airport&VarType=Char&VarDesc=Div1AirportID&VarType=Num&VarDesc=Div1AirportSeqID
-&VarType=Num&VarDesc=Div1WheelsOn&VarType=Char&VarDesc=Div1TotalGTime&VarType=Num&VarDesc=Div1LongestGTime
-&VarType=Num&VarDesc=Div1WheelsOff&VarType=Char&VarDesc=Div1TailNum&VarType=Char&VarDesc=Div2Airport
-&VarType=Char&VarDesc=Div2AirportID&VarType=Num&VarDesc=Div2AirportSeqID&VarType=Num&VarDesc=Div2WheelsOn
-&VarType=Char&VarDesc=Div2TotalGTime&VarType=Num&VarDesc=Div2LongestGTime&VarType=Num&VarDesc=Div2WheelsOff
-&VarType=Char&VarDesc=Div2TailNum&VarType=Char&VarDesc=Div3Airport&VarType=Char&VarDesc=Div3AirportID
-&VarType=Num&VarDesc=Div3AirportSeqID&VarType=Num&VarDesc=Div3WheelsOn&VarType=Char&VarDesc=Div3TotalGTime
-&VarType=Num&VarDesc=Div3LongestGTime&VarType=Num&VarDesc=Div3WheelsOff&VarType=Char&VarDesc=Div3TailNum
-&VarType=Char&VarDesc=Div4Airport&VarType=Char&VarDesc=Div4AirportID&VarType=Num&VarDesc=Div4AirportSeqID
-&VarType=Num&VarDesc=Div4WheelsOn&VarType=Char&VarDesc=Div4TotalGTime&VarType=Num&VarDesc=Div4LongestGTime
-&VarType=Num&VarDesc=Div4WheelsOff&VarType=Char&VarDesc=Div4TailNum&VarType=Char&VarDesc=Div5Airport
-&VarType=Char&VarDesc=Div5AirportID&VarType=Num&VarDesc=Div5AirportSeqID&VarType=Num&VarDesc=Div5WheelsOn
-&VarType=Char&VarDesc=Div5TotalGTime&VarType=Num&VarDesc=Div5LongestGTime&VarType=Num&VarDesc=Div5WheelsOff
-&VarType=Char&VarDesc=Div5TailNum&VarType=Char'''
-
-AOTP_POST_CS_OLD = '''UserTableName=On_Time_Performance&DBShortName=On_Time&RawDataTable=T_ONTIME&sqlstr=+SELECT+YEAR%2CQUARTER
-%2CMONTH%2CDAY_OF_MONTH%2CDAY_OF_WEEK%2CFL_DATE%2CUNIQUE_CARRIER%2CTAIL_NUM%2CORIGIN%2CDEST%2CDEP_TIME
-%2CDEP_DELAY_NEW%2CDEP_TIME_BLK%2CCRS_ARR_TIME%2CARR_TIME%2CARR_DELAY_NEW%2CARR_TIME_BLK%2CCANCELLED
-%2CDIVERTED%2CAIR_TIME%2CDISTANCE%2CCARRIER_DELAY%2CWEATHER_DELAY%2CNAS_DELAY%2CSECURITY_DELAY%2CLATE_AIRCRAFT_DELAY
-+FROM++T_ONTIME+WHERE+Month+%3D{month}+AND+YEAR%3D{year}&varlist=YEAR%2CQUARTER%2CMONTH%2CDAY_OF_MONTH%2CDAY_OF_WEEK
-%2CFL_DATE%2CUNIQUE_CARRIER%2CTAIL_NUM%2CORIGIN%2CDEST%2CDEP_TIME%2CDEP_DELAY_NEW%2CDEP_TIME_BLK%2CCRS_ARR_TIME
-%2CARR_TIME%2CARR_DELAY_NEW%2CARR_TIME_BLK%2CCANCELLED%2CDIVERTED%2CAIR_TIME%2CDISTANCE%2CCARRIER_DELAY
-%2CWEATHER_DELAY%2CNAS_DELAY%2CSECURITY_DELAY%2CLATE_AIRCRAFT_DELAY&grouplist=&suml=&sumRegion=&filter1
-=title%3D&filter2=title%3D&geo=All%A0&time={month}&timename=Month&GEOGRAPHY=All&XYEAR={year}&FREQUENCY={frequency}&VarName
-=YEAR&VarDesc=Year&VarType=Num&VarName=QUARTER&VarDesc=Quarter&VarType=Num&VarName=MONTH&VarDesc
-=Month&VarType=Num&VarName=DAY_OF_MONTH&VarDesc=DayofMonth&VarType=Num&VarName=DAY_OF_WEEK&VarDesc=DayOfWeek
-&VarType=Num&VarName=FL_DATE&VarDesc=FlightDate&VarType=Char&VarName=UNIQUE_CARRIER&VarDesc=UniqueCarrier
-&VarType=Char&VarDesc=AirlineID&VarType=Num&VarDesc=Carrier&VarType=Char&VarName=TAIL_NUM&VarDesc=TailNum
-&VarType=Char&VarDesc=FlightNum&VarType=Char&VarDesc=OriginAirportID&VarType=Num&VarDesc=OriginAirportSeqID
-&VarType=Num&VarDesc=OriginCityMarketID&VarType=Num&VarName=ORIGIN&VarDesc=Origin&VarType=Char&VarDesc
-=OriginCityName&VarType=Char&VarDesc=OriginState&VarType=Char&VarDesc=OriginStateFips&VarType=Char&VarDesc
-=OriginStateName&VarType=Char&VarDesc=OriginWac&VarType=Num&VarDesc=DestAirportID&VarType=Num&VarDesc
-=DestAirportSeqID&VarType=Num&VarDesc=DestCityMarketID&VarType=Num&VarName=DEST&VarDesc=Dest&VarType
-=Char&VarDesc=DestCityName&VarType=Char&VarDesc=DestState&VarType=Char&VarDesc=DestStateFips&VarType
-=Char&VarDesc=DestStateName&VarType=Char&VarDesc=DestWac&VarType=Num&VarDesc=CRSDepTime&VarType=Char
-&VarName=DEP_TIME&VarDesc=DepTime&VarType=Char&VarDesc=DepDelay&VarType=Num&VarName=DEP_DELAY_NEW&VarDesc
-=DepDelayMinutes&VarType=Num&VarDesc=DepDel15&VarType=Num&VarDesc=DepartureDelayGroups&VarType=Num&VarName
-=DEP_TIME_BLK&VarDesc=DepTimeBlk&VarType=Char&VarDesc=TaxiOut&VarType=Num&VarDesc=WheelsOff&VarType=Char
-&VarDesc=WheelsOn&VarType=Char&VarDesc=TaxiIn&VarType=Num&VarName=CRS_ARR_TIME&VarDesc=CRSArrTime&VarType
-=Char&VarName=ARR_TIME&VarDesc=ArrTime&VarType=Char&VarDesc=ArrDelay&VarType=Num&VarName=ARR_DELAY_NEW
-&VarDesc=ArrDelayMinutes&VarType=Num&VarDesc=ArrDel15&VarType=Num&VarDesc=ArrivalDelayGroups&VarType
-=Num&VarName=ARR_TIME_BLK&VarDesc=ArrTimeBlk&VarType=Char&VarName=CANCELLED&VarDesc=Cancelled&VarType
-=Num&VarDesc=CancellationCode&VarType=Char&VarName=DIVERTED&VarDesc=Diverted&VarType=Num&VarDesc=CRSElapsedTime
-&VarType=Num&VarDesc=ActualElapsedTime&VarType=Num&VarName=AIR_TIME&VarDesc=AirTime&VarType=Num&VarDesc
-=Flights&VarType=Num&VarName=DISTANCE&VarDesc=Distance&VarType=Num&VarDesc=DistanceGroup&VarType=Num
-&VarName=CARRIER_DELAY&VarDesc=CarrierDelay&VarType=Num&VarName=WEATHER_DELAY&VarDesc=WeatherDelay&VarType
-=Num&VarName=NAS_DELAY&VarDesc=NASDelay&VarType=Num&VarName=SECURITY_DELAY&VarDesc=SecurityDelay&VarType
-=Num&VarName=LATE_AIRCRAFT_DELAY&VarDesc=LateAircraftDelay&VarType=Num&VarDesc=FirstDepTime&VarType=Char
-&VarDesc=TotalAddGTime&VarType=Num&VarDesc=LongestAddGTime&VarType=Num&VarDesc=DivAirportLandings&VarType
-=Num&VarDesc=DivReachedDest&VarType=Num&VarDesc=DivActualElapsedTime&VarType=Num&VarDesc=DivArrDelay
-&VarType=Num&VarDesc=DivDistance&VarType=Num&VarDesc=Div1Airport&VarType=Char&VarDesc=Div1AirportID&VarType
-=Num&VarDesc=Div1AirportSeqID&VarType=Num&VarDesc=Div1WheelsOn&VarType=Char&VarDesc=Div1TotalGTime&VarType
-=Num&VarDesc=Div1LongestGTime&VarType=Num&VarDesc=Div1WheelsOff&VarType=Char&VarDesc=Div1TailNum&VarType
-=Char&VarDesc=Div2Airport&VarType=Char&VarDesc=Div2AirportID&VarType=Num&VarDesc=Div2AirportSeqID&VarType
-=Num&VarDesc=Div2WheelsOn&VarType=Char&VarDesc=Div2TotalGTime&VarType=Num&VarDesc=Div2LongestGTime&VarType
-=Num&VarDesc=Div2WheelsOff&VarType=Char&VarDesc=Div2TailNum&VarType=Char&VarDesc=Div3Airport&VarType
-=Char&VarDesc=Div3AirportID&VarType=Num&VarDesc=Div3AirportSeqID&VarType=Num&VarDesc=Div3WheelsOn&VarType
-=Char&VarDesc=Div3TotalGTime&VarType=Num&VarDesc=Div3LongestGTime&VarType=Num&VarDesc=Div3WheelsOff&VarType
-=Char&VarDesc=Div3TailNum&VarType=Char&VarDesc=Div4Airport&VarType=Char&VarDesc=Div4AirportID&VarType
-=Num&VarDesc=Div4AirportSeqID&VarType=Num&VarDesc=Div4WheelsOn&VarType=Char&VarDesc=Div4TotalGTime&VarType
-=Num&VarDesc=Div4LongestGTime&VarType=Num&VarDesc=Div4WheelsOff&VarType=Char&VarDesc=Div4TailNum&VarType
-=Char&VarDesc=Div5Airport&VarType=Char&VarDesc=Div5AirportID&VarType=Num&VarDesc=Div5AirportSeqID&VarType
-=Num&VarDesc=Div5WheelsOn&VarType=Char&VarDesc=Div5TotalGTime&VarType=Num&VarDesc=Div5LongestGTime&VarType
-=Num&VarDesc=Div5WheelsOff&VarType=Char&VarDesc=Div5TailNum&VarType=Char'''
+'''
+POST contents, with time specification variablized (year, month, quarter, etc)
+'''
 
 
-AOTP_POST_CS = '''UserTableName=On_Time_Performance&DBShortName=On_Time&RawDataTable=T_ONTIME&sqlstr=+SELECT+YEAR%2CQUARTER
-%2CMONTH%2CDAY_OF_MONTH%2CDAY_OF_WEEK%2CFL_DATE%2CUNIQUE_CARRIER%2CAIRLINE_ID%2CTAIL_NUM%2CFL_NUM%2CORIGIN_AIRPORT_ID
-%2CORIGIN_AIRPORT_SEQ_ID%2CORIGIN_CITY_MARKET_ID%2CORIGIN%2CDEST_AIRPORT_ID%2CDEST_AIRPORT_SEQ_ID%2CDEST_CITY_MARKET_ID
-%2CDEST%2CCRS_DEP_TIME%2CDEP_TIME%2CDEP_DELAY%2CCRS_ARR_TIME%2CARR_TIME%2CARR_DELAY%2CCANCELLED%2CDIVERTED
-%2CAIR_TIME%2CFLIGHTS%2CDISTANCE%2CCARRIER_DELAY%2CWEATHER_DELAY%2CNAS_DELAY%2CSECURITY_DELAY%2CLATE_AIRCRAFT_DELAY
+AOTP_POST = '''UserTableName=On_Time_Performance&DBShortName=On_Time&RawDataTable=T_ONTIME&sqlstr=+SELECT+YEAR%2CQUARTER
+%2CMONTH%2CDAY_OF_MONTH%2CDAY_OF_WEEK%2CFL_DATE%2CUNIQUE_CARRIER%2CAIRLINE_ID%2CCARRIER%2CTAIL_NUM%2CFL_NUM
+%2CORIGIN_AIRPORT_ID%2CORIGIN_AIRPORT_SEQ_ID%2CORIGIN_CITY_MARKET_ID%2CORIGIN%2CORIGIN_CITY_NAME%2CORIGIN_STATE_ABR
+%2CORIGIN_STATE_FIPS%2CORIGIN_STATE_NM%2CORIGIN_WAC%2CDEST_AIRPORT_ID%2CDEST_AIRPORT_SEQ_ID%2CDEST_CITY_MARKET_ID
+%2CDEST%2CDEST_CITY_NAME%2CDEST_STATE_ABR%2CDEST_STATE_FIPS%2CDEST_STATE_NM%2CDEST_WAC%2CCRS_DEP_TIME
+%2CDEP_TIME%2CDEP_DELAY%2CDEP_DELAY_NEW%2CDEP_DEL15%2CDEP_DELAY_GROUP%2CDEP_TIME_BLK%2CTAXI_OUT%2CWHEELS_OFF
+%2CWHEELS_ON%2CTAXI_IN%2CCRS_ARR_TIME%2CARR_TIME%2CARR_DELAY%2CARR_DELAY_NEW%2CARR_DEL15%2CARR_DELAY_GROUP
+%2CARR_TIME_BLK%2CCANCELLED%2CCANCELLATION_CODE%2CDIVERTED%2CCRS_ELAPSED_TIME%2CACTUAL_ELAPSED_TIME%2CAIR_TIME
+%2CFLIGHTS%2CDISTANCE%2CDISTANCE_GROUP%2CCARRIER_DELAY%2CWEATHER_DELAY%2CNAS_DELAY%2CSECURITY_DELAY%2CLATE_AIRCRAFT_DELAY
 +FROM++T_ONTIME+WHERE+Month+%3D{month_num}+AND+YEAR%3D{year}&varlist=YEAR%2CQUARTER%2CMONTH%2CDAY_OF_MONTH%2CDAY_OF_WEEK
-%2CFL_DATE%2CUNIQUE_CARRIER%2CAIRLINE_ID%2CTAIL_NUM%2CFL_NUM%2CORIGIN_AIRPORT_ID%2CORIGIN_AIRPORT_SEQ_ID
-%2CORIGIN_CITY_MARKET_ID%2CORIGIN%2CDEST_AIRPORT_ID%2CDEST_AIRPORT_SEQ_ID%2CDEST_CITY_MARKET_ID%2CDEST
-%2CCRS_DEP_TIME%2CDEP_TIME%2CDEP_DELAY%2CCRS_ARR_TIME%2CARR_TIME%2CARR_DELAY%2CCANCELLED%2CDIVERTED%2CAIR_TIME
-%2CFLIGHTS%2CDISTANCE%2CCARRIER_DELAY%2CWEATHER_DELAY%2CNAS_DELAY%2CSECURITY_DELAY%2CLATE_AIRCRAFT_DELAY
-&grouplist=&suml=&sumRegion=&filter1=title%3D&filter2=title%3D&geo=All%A0&time={month}&timename=Month
-&GEOGRAPHY=All&XYEAR={year}&FREQUENCY={frequency}&VarName=YEAR&VarDesc=Year&VarType=Num&VarName=QUARTER&VarDesc=Quarter
-&VarType=Num&VarName=MONTH&VarDesc=Month&VarType=Num&VarName=DAY_OF_MONTH&VarDesc=DayofMonth&VarType
-=Num&VarName=DAY_OF_WEEK&VarDesc=DayOfWeek&VarType=Num&VarName=FL_DATE&VarDesc=FlightDate&VarType=Char
-&VarName=UNIQUE_CARRIER&VarDesc=UniqueCarrier&VarType=Char&VarName=AIRLINE_ID&VarDesc=AirlineID&VarType
-=Num&VarDesc=Carrier&VarType=Char&VarName=TAIL_NUM&VarDesc=TailNum&VarType=Char&VarName=FL_NUM&VarDesc
-=FlightNum&VarType=Char&VarName=ORIGIN_AIRPORT_ID&VarDesc=OriginAirportID&VarType=Num&VarName=ORIGIN_AIRPORT_SEQ_ID
+%2CFL_DATE%2CUNIQUE_CARRIER%2CAIRLINE_ID%2CCARRIER%2CTAIL_NUM%2CFL_NUM%2CORIGIN_AIRPORT_ID%2CORIGIN_AIRPORT_SEQ_ID
+%2CORIGIN_CITY_MARKET_ID%2CORIGIN%2CORIGIN_CITY_NAME%2CORIGIN_STATE_ABR%2CORIGIN_STATE_FIPS%2CORIGIN_STATE_NM
+%2CORIGIN_WAC%2CDEST_AIRPORT_ID%2CDEST_AIRPORT_SEQ_ID%2CDEST_CITY_MARKET_ID%2CDEST%2CDEST_CITY_NAME%2CDEST_STATE_ABR
+%2CDEST_STATE_FIPS%2CDEST_STATE_NM%2CDEST_WAC%2CCRS_DEP_TIME%2CDEP_TIME%2CDEP_DELAY%2CDEP_DELAY_NEW%2CDEP_DEL15
+%2CDEP_DELAY_GROUP%2CDEP_TIME_BLK%2CTAXI_OUT%2CWHEELS_OFF%2CWHEELS_ON%2CTAXI_IN%2CCRS_ARR_TIME%2CARR_TIME
+%2CARR_DELAY%2CARR_DELAY_NEW%2CARR_DEL15%2CARR_DELAY_GROUP%2CARR_TIME_BLK%2CCANCELLED%2CCANCELLATION_CODE
+%2CDIVERTED%2CCRS_ELAPSED_TIME%2CACTUAL_ELAPSED_TIME%2CAIR_TIME%2CFLIGHTS%2CDISTANCE%2CDISTANCE_GROUP
+%2CCARRIER_DELAY%2CWEATHER_DELAY%2CNAS_DELAY%2CSECURITY_DELAY%2CLATE_AIRCRAFT_DELAY&grouplist=&suml=
+&sumRegion=&filter1=title%3D&filter2=title%3D&geo=All%A0&time={month}&timename=Month&GEOGRAPHY=All&XYEAR
+={year}&FREQUENCY={frequency}&VarName=YEAR&VarDesc=Year&VarType=Num&VarName=QUARTER&VarDesc=Quarter&VarType=Num&VarName
+=MONTH&VarDesc=Month&VarType=Num&VarName=DAY_OF_MONTH&VarDesc=DayofMonth&VarType=Num&VarName=DAY_OF_WEEK
+&VarDesc=DayOfWeek&VarType=Num&VarName=FL_DATE&VarDesc=FlightDate&VarType=Char&VarName=UNIQUE_CARRIER
+&VarDesc=UniqueCarrier&VarType=Char&VarName=AIRLINE_ID&VarDesc=AirlineID&VarType=Num&VarName=CARRIER
+&VarDesc=Carrier&VarType=Char&VarName=TAIL_NUM&VarDesc=TailNum&VarType=Char&VarName=FL_NUM&VarDesc=FlightNum
+&VarType=Char&VarName=ORIGIN_AIRPORT_ID&VarDesc=OriginAirportID&VarType=Num&VarName=ORIGIN_AIRPORT_SEQ_ID
 &VarDesc=OriginAirportSeqID&VarType=Num&VarName=ORIGIN_CITY_MARKET_ID&VarDesc=OriginCityMarketID&VarType
-=Num&VarName=ORIGIN&VarDesc=Origin&VarType=Char&VarDesc=OriginCityName&VarType=Char&VarDesc=OriginState
-&VarType=Char&VarDesc=OriginStateFips&VarType=Char&VarDesc=OriginStateName&VarType=Char&VarDesc=OriginWac
-&VarType=Num&VarName=DEST_AIRPORT_ID&VarDesc=DestAirportID&VarType=Num&VarName=DEST_AIRPORT_SEQ_ID&VarDesc
-=DestAirportSeqID&VarType=Num&VarName=DEST_CITY_MARKET_ID&VarDesc=DestCityMarketID&VarType=Num&VarName
-=DEST&VarDesc=Dest&VarType=Char&VarDesc=DestCityName&VarType=Char&VarDesc=DestState&VarType=Char&VarDesc
-=DestStateFips&VarType=Char&VarDesc=DestStateName&VarType=Char&VarDesc=DestWac&VarType=Num&VarName=CRS_DEP_TIME
-&VarDesc=CRSDepTime&VarType=Char&VarName=DEP_TIME&VarDesc=DepTime&VarType=Char&VarName=DEP_DELAY&VarDesc
-=DepDelay&VarType=Num&VarDesc=DepDelayMinutes&VarType=Num&VarDesc=DepDel15&VarType=Num&VarDesc=DepartureDelayGroups
-&VarType=Num&VarDesc=DepTimeBlk&VarType=Char&VarDesc=TaxiOut&VarType=Num&VarDesc=WheelsOff&VarType=Char
-&VarDesc=WheelsOn&VarType=Char&VarDesc=TaxiIn&VarType=Num&VarName=CRS_ARR_TIME&VarDesc=CRSArrTime&VarType
-=Char&VarName=ARR_TIME&VarDesc=ArrTime&VarType=Char&VarName=ARR_DELAY&VarDesc=ArrDelay&VarType=Num&VarDesc
-=ArrDelayMinutes&VarType=Num&VarDesc=ArrDel15&VarType=Num&VarDesc=ArrivalDelayGroups&VarType=Num&VarDesc
-=ArrTimeBlk&VarType=Char&VarName=CANCELLED&VarDesc=Cancelled&VarType=Num&VarDesc=CancellationCode&VarType
-=Char&VarName=DIVERTED&VarDesc=Diverted&VarType=Num&VarDesc=CRSElapsedTime&VarType=Num&VarDesc=ActualElapsedTime
-&VarType=Num&VarName=AIR_TIME&VarDesc=AirTime&VarType=Num&VarName=FLIGHTS&VarDesc=Flights&VarType=Num
-&VarName=DISTANCE&VarDesc=Distance&VarType=Num&VarDesc=DistanceGroup&VarType=Num&VarName=CARRIER_DELAY
-&VarDesc=CarrierDelay&VarType=Num&VarName=WEATHER_DELAY&VarDesc=WeatherDelay&VarType=Num&VarName=NAS_DELAY
-&VarDesc=NASDelay&VarType=Num&VarName=SECURITY_DELAY&VarDesc=SecurityDelay&VarType=Num&VarName=LATE_AIRCRAFT_DELAY
-&VarDesc=LateAircraftDelay&VarType=Num&VarDesc=FirstDepTime&VarType=Char&VarDesc=TotalAddGTime&VarType
-=Num&VarDesc=LongestAddGTime&VarType=Num&VarDesc=DivAirportLandings&VarType=Num&VarDesc=DivReachedDest
-&VarType=Num&VarDesc=DivActualElapsedTime&VarType=Num&VarDesc=DivArrDelay&VarType=Num&VarDesc=DivDistance
-&VarType=Num&VarDesc=Div1Airport&VarType=Char&VarDesc=Div1AirportID&VarType=Num&VarDesc=Div1AirportSeqID
-&VarType=Num&VarDesc=Div1WheelsOn&VarType=Char&VarDesc=Div1TotalGTime&VarType=Num&VarDesc=Div1LongestGTime
-&VarType=Num&VarDesc=Div1WheelsOff&VarType=Char&VarDesc=Div1TailNum&VarType=Char&VarDesc=Div2Airport
-&VarType=Char&VarDesc=Div2AirportID&VarType=Num&VarDesc=Div2AirportSeqID&VarType=Num&VarDesc=Div2WheelsOn
-&VarType=Char&VarDesc=Div2TotalGTime&VarType=Num&VarDesc=Div2LongestGTime&VarType=Num&VarDesc=Div2WheelsOff
-&VarType=Char&VarDesc=Div2TailNum&VarType=Char&VarDesc=Div3Airport&VarType=Char&VarDesc=Div3AirportID
-&VarType=Num&VarDesc=Div3AirportSeqID&VarType=Num&VarDesc=Div3WheelsOn&VarType=Char&VarDesc=Div3TotalGTime
-&VarType=Num&VarDesc=Div3LongestGTime&VarType=Num&VarDesc=Div3WheelsOff&VarType=Char&VarDesc=Div3TailNum
-&VarType=Char&VarDesc=Div4Airport&VarType=Char&VarDesc=Div4AirportID&VarType=Num&VarDesc=Div4AirportSeqID
-&VarType=Num&VarDesc=Div4WheelsOn&VarType=Char&VarDesc=Div4TotalGTime&VarType=Num&VarDesc=Div4LongestGTime
-&VarType=Num&VarDesc=Div4WheelsOff&VarType=Char&VarDesc=Div4TailNum&VarType=Char&VarDesc=Div5Airport
-&VarType=Char&VarDesc=Div5AirportID&VarType=Num&VarDesc=Div5AirportSeqID&VarType=Num&VarDesc=Div5WheelsOn
-&VarType=Char&VarDesc=Div5TotalGTime&VarType=Num&VarDesc=Div5LongestGTime&VarType=Num&VarDesc=Div5WheelsOff
-&VarType=Char&VarDesc=Div5TailNum&VarType=Char'''
+=Num&VarName=ORIGIN&VarDesc=Origin&VarType=Char&VarName=ORIGIN_CITY_NAME&VarDesc=OriginCityName&VarType
+=Char&VarName=ORIGIN_STATE_ABR&VarDesc=OriginState&VarType=Char&VarName=ORIGIN_STATE_FIPS&VarDesc=OriginStateFips
+&VarType=Char&VarName=ORIGIN_STATE_NM&VarDesc=OriginStateName&VarType=Char&VarName=ORIGIN_WAC&VarDesc
+=OriginWac&VarType=Num&VarName=DEST_AIRPORT_ID&VarDesc=DestAirportID&VarType=Num&VarName=DEST_AIRPORT_SEQ_ID
+&VarDesc=DestAirportSeqID&VarType=Num&VarName=DEST_CITY_MARKET_ID&VarDesc=DestCityMarketID&VarType=Num
+&VarName=DEST&VarDesc=Dest&VarType=Char&VarName=DEST_CITY_NAME&VarDesc=DestCityName&VarType=Char&VarName
+=DEST_STATE_ABR&VarDesc=DestState&VarType=Char&VarName=DEST_STATE_FIPS&VarDesc=DestStateFips&VarType
+=Char&VarName=DEST_STATE_NM&VarDesc=DestStateName&VarType=Char&VarName=DEST_WAC&VarDesc=DestWac&VarType
+=Num&VarName=CRS_DEP_TIME&VarDesc=CRSDepTime&VarType=Char&VarName=DEP_TIME&VarDesc=DepTime&VarType=Char
+&VarName=DEP_DELAY&VarDesc=DepDelay&VarType=Num&VarName=DEP_DELAY_NEW&VarDesc=DepDelayMinutes&VarType
+=Num&VarName=DEP_DEL15&VarDesc=DepDel15&VarType=Num&VarName=DEP_DELAY_GROUP&VarDesc=DepartureDelayGroups
+&VarType=Num&VarName=DEP_TIME_BLK&VarDesc=DepTimeBlk&VarType=Char&VarName=TAXI_OUT&VarDesc=TaxiOut&VarType
+=Num&VarName=WHEELS_OFF&VarDesc=WheelsOff&VarType=Char&VarName=WHEELS_ON&VarDesc=WheelsOn&VarType=Char
+&VarName=TAXI_IN&VarDesc=TaxiIn&VarType=Num&VarName=CRS_ARR_TIME&VarDesc=CRSArrTime&VarType=Char&VarName
+=ARR_TIME&VarDesc=ArrTime&VarType=Char&VarName=ARR_DELAY&VarDesc=ArrDelay&VarType=Num&VarName=ARR_DELAY_NEW
+&VarDesc=ArrDelayMinutes&VarType=Num&VarName=ARR_DEL15&VarDesc=ArrDel15&VarType=Num&VarName=ARR_DELAY_GROUP
+&VarDesc=ArrivalDelayGroups&VarType=Num&VarName=ARR_TIME_BLK&VarDesc=ArrTimeBlk&VarType=Char&VarName
+=CANCELLED&VarDesc=Cancelled&VarType=Num&VarName=CANCELLATION_CODE&VarDesc=CancellationCode&VarType=Char
+&VarName=DIVERTED&VarDesc=Diverted&VarType=Num&VarName=CRS_ELAPSED_TIME&VarDesc=CRSElapsedTime&VarType
+=Num&VarName=ACTUAL_ELAPSED_TIME&VarDesc=ActualElapsedTime&VarType=Num&VarName=AIR_TIME&VarDesc=AirTime
+&VarType=Num&VarName=FLIGHTS&VarDesc=Flights&VarType=Num&VarName=DISTANCE&VarDesc=Distance&VarType=Num
+&VarName=DISTANCE_GROUP&VarDesc=DistanceGroup&VarType=Num&VarName=CARRIER_DELAY&VarDesc=CarrierDelay
+&VarType=Num&VarName=WEATHER_DELAY&VarDesc=WeatherDelay&VarType=Num&VarName=NAS_DELAY&VarDesc=NASDelay
+&VarType=Num&VarName=SECURITY_DELAY&VarDesc=SecurityDelay&VarType=Num&VarName=LATE_AIRCRAFT_DELAY&VarDesc
+=LateAircraftDelay&VarType=Num&VarDesc=FirstDepTime&VarType=Char&VarDesc=TotalAddGTime&VarType=Num&VarDesc
+=LongestAddGTime&VarType=Num&VarDesc=DivAirportLandings&VarType=Num&VarDesc=DivReachedDest&VarType=Num
+&VarDesc=DivActualElapsedTime&VarType=Num&VarDesc=DivArrDelay&VarType=Num&VarDesc=DivDistance&VarType
+=Num&VarDesc=Div1Airport&VarType=Char&VarDesc=Div1AirportID&VarType=Num&VarDesc=Div1AirportSeqID&VarType
+=Num&VarDesc=Div1WheelsOn&VarType=Char&VarDesc=Div1TotalGTime&VarType=Num&VarDesc=Div1LongestGTime&VarType
+=Num&VarDesc=Div1WheelsOff&VarType=Char&VarDesc=Div1TailNum&VarType=Char&VarDesc=Div2Airport&VarType
+=Char&VarDesc=Div2AirportID&VarType=Num&VarDesc=Div2AirportSeqID&VarType=Num&VarDesc=Div2WheelsOn&VarType
+=Char&VarDesc=Div2TotalGTime&VarType=Num&VarDesc=Div2LongestGTime&VarType=Num&VarDesc=Div2WheelsOff&VarType
+=Char&VarDesc=Div2TailNum&VarType=Char&VarDesc=Div3Airport&VarType=Char&VarDesc=Div3AirportID&VarType
+=Num&VarDesc=Div3AirportSeqID&VarType=Num&VarDesc=Div3WheelsOn&VarType=Char&VarDesc=Div3TotalGTime&VarType
+=Num&VarDesc=Div3LongestGTime&VarType=Num&VarDesc=Div3WheelsOff&VarType=Char&VarDesc=Div3TailNum&VarType
+=Char&VarDesc=Div4Airport&VarType=Char&VarDesc=Div4AirportID&VarType=Num&VarDesc=Div4AirportSeqID&VarType
+=Num&VarDesc=Div4WheelsOn&VarType=Char&VarDesc=Div4TotalGTime&VarType=Num&VarDesc=Div4LongestGTime&VarType
+=Num&VarDesc=Div4WheelsOff&VarType=Char&VarDesc=Div4TailNum&VarType=Char&VarDesc=Div5Airport&VarType
+=Char&VarDesc=Div5AirportID&VarType=Num&VarDesc=Div5AirportSeqID&VarType=Num&VarDesc=Div5WheelsOn&VarType
+=Char&VarDesc=Div5TotalGTime&VarType=Num&VarDesc=Div5LongestGTime&VarType=Num&VarDesc=Div5WheelsOff&VarType
+=Char&VarDesc=Div5TailNum&VarType=Char
+'''
 
 DB1BMARKETS_POST='''UserTableName=DB1BMarket&DBShortName=Origin_and_Destination_Survey&RawDataTable=T_DB1B_MARKET&sqlstr
 =+SELECT+ITIN_ID%2CMKT_ID%2CMARKET_COUPONS%2CYEAR%2CQUARTER%2CORIGIN_AIRPORT_ID%2CORIGIN_AIRPORT_SEQ_ID
@@ -280,7 +166,75 @@ DB1BCOUPONS_POST='''UserTableName=DB1BCoupon&DBShortName=&RawDataTable=T_DB1B_CO
 &VarDesc=DistanceGroup&VarType=Num&VarDesc=Gateway&VarType=Num&VarDesc=ItinGeoType&VarType=Num&VarDesc
 =CouponGeoType&VarType=Num'''
 
+
+T100_SEG_POST = '''UserTableName=T_100_Segment__All_Carriers&DBShortName=&RawDataTable=T_T100_SEGMENT_ALL_CARRIER&sqlstr
+=+SELECT+DEPARTURES_SCHEDULED%2CDEPARTURES_PERFORMED%2CPAYLOAD%2CSEATS%2CPASSENGERS%2CFREIGHT%2CMAIL
+%2CDISTANCE%2CRAMP_TO_RAMP%2CAIR_TIME%2CUNIQUE_CARRIER%2CAIRLINE_ID%2CUNIQUE_CARRIER_NAME%2CUNIQUE_CARRIER_ENTITY
+%2CREGION%2CCARRIER%2CCARRIER_NAME%2CCARRIER_GROUP%2CCARRIER_GROUP_NEW%2CORIGIN_AIRPORT_ID%2CORIGIN_AIRPORT_SEQ_ID
+%2CORIGIN_CITY_MARKET_ID%2CORIGIN%2CORIGIN_CITY_NAME%2CORIGIN_STATE_ABR%2CORIGIN_STATE_FIPS%2CORIGIN_STATE_NM
+%2CORIGIN_COUNTRY%2CORIGIN_COUNTRY_NAME%2CORIGIN_WAC%2CDEST_AIRPORT_ID%2CDEST_AIRPORT_SEQ_ID%2CDEST_CITY_MARKET_ID
+%2CDEST%2CDEST_CITY_NAME%2CDEST_STATE_ABR%2CDEST_STATE_FIPS%2CDEST_STATE_NM%2CDEST_COUNTRY%2CDEST_COUNTRY_NAME
+%2CDEST_WAC%2CAIRCRAFT_GROUP%2CAIRCRAFT_TYPE%2CAIRCRAFT_CONFIG%2CYEAR%2CQUARTER%2CMONTH%2CDISTANCE_GROUP
+%2CCLASS%2CDATA_SOURCE+FROM++T_T100_SEGMENT_ALL_CARRIER+WHERE+YEAR%3D{year}&varlist=DEPARTURES_SCHEDULED
+%2CDEPARTURES_PERFORMED%2CPAYLOAD%2CSEATS%2CPASSENGERS%2CFREIGHT%2CMAIL%2CDISTANCE%2CRAMP_TO_RAMP%2CAIR_TIME
+%2CUNIQUE_CARRIER%2CAIRLINE_ID%2CUNIQUE_CARRIER_NAME%2CUNIQUE_CARRIER_ENTITY%2CREGION%2CCARRIER%2CCARRIER_NAME
+%2CCARRIER_GROUP%2CCARRIER_GROUP_NEW%2CORIGIN_AIRPORT_ID%2CORIGIN_AIRPORT_SEQ_ID%2CORIGIN_CITY_MARKET_ID
+%2CORIGIN%2CORIGIN_CITY_NAME%2CORIGIN_STATE_ABR%2CORIGIN_STATE_FIPS%2CORIGIN_STATE_NM%2CORIGIN_COUNTRY
+%2CORIGIN_COUNTRY_NAME%2CORIGIN_WAC%2CDEST_AIRPORT_ID%2CDEST_AIRPORT_SEQ_ID%2CDEST_CITY_MARKET_ID%2CDEST
+%2CDEST_CITY_NAME%2CDEST_STATE_ABR%2CDEST_STATE_FIPS%2CDEST_STATE_NM%2CDEST_COUNTRY%2CDEST_COUNTRY_NAME
+%2CDEST_WAC%2CAIRCRAFT_GROUP%2CAIRCRAFT_TYPE%2CAIRCRAFT_CONFIG%2CYEAR%2CQUARTER%2CMONTH%2CDISTANCE_GROUP
+%2CCLASS%2CDATA_SOURCE&grouplist=&suml=&sumRegion=&filter1=title%3D&filter2=title%3D&geo=All%A0&time
+=All%A0Months&timename=Month&GEOGRAPHY=All&XYEAR={year}&FREQUENCY=All&VarName=DEPARTURES_SCHEDULED&VarDesc
+=DepScheduled&VarType=Num&VarName=DEPARTURES_PERFORMED&VarDesc=DepPerformed&VarType=Num&VarName=PAYLOAD
+&VarDesc=Payload&VarType=Num&VarName=SEATS&VarDesc=Seats&VarType=Num&VarName=PASSENGERS&VarDesc=Passengers
+&VarType=Num&VarName=FREIGHT&VarDesc=Freight&VarType=Num&VarName=MAIL&VarDesc=Mail&VarType=Num&VarName
+=DISTANCE&VarDesc=Distance&VarType=Num&VarName=RAMP_TO_RAMP&VarDesc=RampToRamp&VarType=Num&VarName=AIR_TIME
+&VarDesc=AirTime&VarType=Num&VarName=UNIQUE_CARRIER&VarDesc=UniqueCarrier&VarType=Char&VarName=AIRLINE_ID
+&VarDesc=AirlineID&VarType=Num&VarName=UNIQUE_CARRIER_NAME&VarDesc=UniqueCarrierName&VarType=Char&VarName
+=UNIQUE_CARRIER_ENTITY&VarDesc=UniqCarrierEntity&VarType=Char&VarName=REGION&VarDesc=CarrierRegion&VarType
+=Char&VarName=CARRIER&VarDesc=Carrier&VarType=Char&VarName=CARRIER_NAME&VarDesc=CarrierName&VarType=Char
+&VarName=CARRIER_GROUP&VarDesc=CarrierGroup&VarType=Num&VarName=CARRIER_GROUP_NEW&VarDesc=CarrierGroupNew
+&VarType=Num&VarName=ORIGIN_AIRPORT_ID&VarDesc=OriginAirportID&VarType=Num&VarName=ORIGIN_AIRPORT_SEQ_ID
+&VarDesc=OriginAirportSeqID&VarType=Num&VarName=ORIGIN_CITY_MARKET_ID&VarDesc=OriginCityMarketID&VarType
+=Num&VarName=ORIGIN&VarDesc=Origin&VarType=Char&VarName=ORIGIN_CITY_NAME&VarDesc=OriginCityName&VarType
+=Char&VarName=ORIGIN_STATE_ABR&VarDesc=OriginState&VarType=Char&VarName=ORIGIN_STATE_FIPS&VarDesc=OriginStateFips
+&VarType=Char&VarName=ORIGIN_STATE_NM&VarDesc=OriginStateName&VarType=Char&VarName=ORIGIN_COUNTRY&VarDesc
+=OriginCountry&VarType=Char&VarName=ORIGIN_COUNTRY_NAME&VarDesc=OriginCountryName&VarType=Char&VarName
+=ORIGIN_WAC&VarDesc=OriginWac&VarType=Num&VarName=DEST_AIRPORT_ID&VarDesc=DestAirportID&VarType=Num&VarName
+=DEST_AIRPORT_SEQ_ID&VarDesc=DestAirportSeqID&VarType=Num&VarName=DEST_CITY_MARKET_ID&VarDesc=DestCityMarketID
+&VarType=Num&VarName=DEST&VarDesc=Dest&VarType=Char&VarName=DEST_CITY_NAME&VarDesc=DestCityName&VarType
+=Char&VarName=DEST_STATE_ABR&VarDesc=DestState&VarType=Char&VarName=DEST_STATE_FIPS&VarDesc=DestStateFips
+&VarType=Char&VarName=DEST_STATE_NM&VarDesc=DestStateName&VarType=Char&VarName=DEST_COUNTRY&VarDesc=DestCountry
+&VarType=Char&VarName=DEST_COUNTRY_NAME&VarDesc=DestCountryName&VarType=Char&VarName=DEST_WAC&VarDesc
+=DestWac&VarType=Num&VarName=AIRCRAFT_GROUP&VarDesc=AircraftGroup&VarType=Num&VarName=AIRCRAFT_TYPE&VarDesc
+=AircraftType&VarType=Char&VarName=AIRCRAFT_CONFIG&VarDesc=AircraftConfig&VarType=Num&VarName=YEAR&VarDesc
+=Year&VarType=Num&VarName=QUARTER&VarDesc=Quarter&VarType=Num&VarName=MONTH&VarDesc=Month&VarType=Num
+&VarName=DISTANCE_GROUP&VarDesc=DistanceGroup&VarType=Num&VarName=CLASS&VarDesc=Class&VarType=Char&VarName
+=DATA_SOURCE&VarDesc=DataSource&VarType=Char'''
+
+SCHEDULE_B43_POST = '''UserTableName=Schedule_B_43_Inventory&DBShortName=Air_Carrier_Financial&RawDataTable=T_F41SCHEDULE_B43
+&sqlstr=+SELECT+YEAR%2CCARRIER%2CCARRIER_NAME%2CMANUFACTURE_YEAR%2CUNIQUE_CARRIER_NAME%2CSERIAL_NUMBER
+%2CTAIL_NUMBER%2CAIRCRAFT_STATUS%2COPERATING_STATUS%2CNUMBER_OF_SEATS%2CMANUFACTURER%2CMODEL%2CCAPACITY_IN_POUNDS
+%2CACQUISITION_DATE%2CAIRLINE_ID%2CUNIQUE_CARRIER+FROM++T_F41SCHEDULE_B43+WHERE+YEAR%3D{year}&varlist=YEAR
+%2CCARRIER%2CCARRIER_NAME%2CMANUFACTURE_YEAR%2CUNIQUE_CARRIER_NAME%2CSERIAL_NUMBER%2CTAIL_NUMBER%2CAIRCRAFT_STATUS
+%2COPERATING_STATUS%2CNUMBER_OF_SEATS%2CMANUFACTURER%2CMODEL%2CCAPACITY_IN_POUNDS%2CACQUISITION_DATE
+%2CAIRLINE_ID%2CUNIQUE_CARRIER&grouplist=&suml=&sumRegion=&filter1=title%3D&filter2=title%3D&geo=Not
++Applicable&time=Not+Applicable&timename=Annual&GEOGRAPHY=All&XYEAR={year}&FREQUENCY=All&VarName=YEAR&VarDesc
+=Year&VarType=Num&VarName=CARRIER&VarDesc=Carrier&VarType=Char&VarName=CARRIER_NAME&VarDesc=CarrierName
+&VarType=Char&VarName=MANUFACTURE_YEAR&VarDesc=ManufactureYear&VarType=Num&VarName=UNIQUE_CARRIER_NAME
+&VarDesc=UniqueCarrierName&VarType=Char&VarName=SERIAL_NUMBER&VarDesc=SerialNumber&VarType=Char&VarName
+=TAIL_NUMBER&VarDesc=TailNumber&VarType=Char&VarName=AIRCRAFT_STATUS&VarDesc=AircraftStatus&VarType=Char
+&VarName=OPERATING_STATUS&VarDesc=OperatingStatus&VarType=Char&VarName=NUMBER_OF_SEATS&VarDesc=NumberOfSeats
+&VarType=Num&VarName=MANUFACTURER&VarDesc=Manufacturer&VarType=Char&VarName=MODEL&VarDesc=Model&VarType
+=Char&VarName=CAPACITY_IN_POUNDS&VarDesc=CapacityInPounds&VarType=Num&VarName=ACQUISITION_DATE&VarDesc
+=AcquisitionDate&VarType=Char&VarName=AIRLINE_ID&VarDesc=AirlineID&VarType=Num&VarName=UNIQUE_CARRIER
+&VarDesc=UniqueCarrier&VarType=Char'''
     
+    
+'''
+generalized helper function to make forward request to certain bts table
+
+'''
 #send PORT request to BTS server at specified url, make appropriate request, extract and save fi;e
 #post_data is htlm form data for requests
 #post_vars is a dictionary of associated variabls to replace     
@@ -296,7 +250,7 @@ def bts_table_request(url,post_data,post_vars,outfile,data_dir):
     except:
         print('Http request error')
         print(post_vars)
-        print(sys.exc_info()[0])
+        print(sys.exc_info())
         return 0
     try: 
         #get file handle for returned ZIP file
@@ -311,7 +265,7 @@ def bts_table_request(url,post_data,post_vars,outfile,data_dir):
     except:
         print('IO error')
         print(post_vars)
-        print(sys.exc_info()[0])
+        print(sys.exc_info())
         return 0
     return 1
 
@@ -353,14 +307,46 @@ def DB1BCoupons_download(post=DB1BCOUPONS_POST,years = [2007], quarters=list(ran
             else:
                 print('Error')
     return('All files downloaded')
-
-def run():
-    a=DB1BMarkets_download(years = [2009,2010])
-    b= DB1BCoupons_download(years = [2009,2010])
-
+    
+def T100segments_download(post=T100_SEG_POST,years = [2007],root_filename = 'T100_SEGMENTS', outdir='C:/users/d29905p/Documents/airline_competition_paper/code/network_games/bts_data/'):
+    #url for DB1B markets table    
+    url = 'http://www.transtats.bts.gov/DownLoad_Table.asp?Table_ID=293&Has_Group=3&Is_Zipped=0'    
+    #download table for each 
+    for year in years:        
+        #request variables           
+        post_vars={'year':year} 
+        print('downloading t100 segments {year}'.format(**post_vars))
+        outfile = root_filename+'_'+str(year)+'.csv'
+        post_data = post
+        #make request
+        status = bts_table_request(url,post_data,post_vars,outfile,outdir)
+        if status==1:
+            print('Done')
+        else:
+            print('Error')
+    return('All files downloaded')
+    
+    
+def B43_download(post=SCHEDULE_B43_POST,years = [2007],root_filename = 'SCHEDULE_B43', outdir='C:/users/d29905p/Documents/airline_competition_paper/code/network_games/bts_data/'):
+    #url for DB1B markets table    
+    url = 'http://www.transtats.bts.gov/DownLoad_Table.asp?Table_ID=314&Has_Group=0&Is_Zipped=0'    
+    #download table for each 
+    for year in years:        
+        #request variables           
+        post_vars={'year':year} 
+        print('downloading schedule b43 {year}'.format(**post_vars))
+        outfile = root_filename+'_'+str(year)+'.csv'
+        post_data = post
+        #make request
+        status = bts_table_request(url,post_data,post_vars,outfile,outdir)
+        if status==1:
+            print('Done')
+        else:
+            print('Error')
+    return('All files downloaded')
   
-### CURRENTLY MESSED UP, DOWNLOADS YEAR/MONTH BADY, TEST A 2-13 output
-def aotp_download(post=AOTP_POST_CS,years = [2007,2008], months=list(range(1,13)), data_dir='C:/users/d29905p/Documents/airline_competition_paper/code/network_games/bts_data/', root_filename = 'AOTP_CS'):
+
+def aotp_download(post=AOTP_POST,years = [2007,2008], months=list(range(1,13)), data_dir='C:/users/d29905p/Documents/airline_competition_paper/code/network_games/bts_data/', root_filename = 'AOTP_CS'):
     '''    
     https://github.com/isaacobezo/get_rita/blob/master/get_transtat_data.py
     https://public.tableau.com/s/blog/2013/08/data-scraping-part-iii-python
@@ -368,10 +354,7 @@ def aotp_download(post=AOTP_POST_CS,years = [2007,2008], months=list(range(1,13)
     '''    
     url='http://www.transtats.bts.gov/DownLoad_Table.asp?Table_ID=236&Has_Group=0&Is_Zipped=0'
     months_str = ['January','February','March','April','May','June','July','August','September','October','November','December']
-    #headers = {
-     #   "Content-Type" : "application/x-www-form-urlencoded",
-      #  }    
-    ######base_url = PUT AOTP BASE HERE
+  
     for year in years:
         for month in months:
             month_str = months_str[month-1]
@@ -388,22 +371,10 @@ def aotp_download(post=AOTP_POST_CS,years = [2007,2008], months=list(range(1,13)
                 print('Done')
             else:
                 print('Error')
-            #NOT ACTUALLY SURE WHAT FREQUENCY DOES
-            ##frequency=str(month)
-            #string of month
-                '''
-            month_str = months_str[month-1]
-            year = str(year)
-            #format post string
-            AOTP_POST_formatted = AOTP_POST.format(month=month_str, year=year, frequency=1)
-            AOTP_POST_formatted = AOTP_POST_formatted.replace('\n','')
-            data = AOTP_POST_formatted.splot
-           
-    
-            r = requests.post(base_url, data=data,headers=headers)
-            '''
+          
 
     time.sleep(.5)
+    return('All files downloaded')
     
     
     
@@ -411,141 +382,5 @@ def aotp_download(post=AOTP_POST_CS,years = [2007,2008], months=list(range(1,13)
     
     
     
-    
-    
-def target_market(sector,program_target):
-    print(sector)
-    print(program_target)
-    return []
-    
-def aotp_merge(airports = ['SEA','PDX','SFO','SAN','LAX','LAS','PHX','OAK','ONT','SMF','SJC'],years = [2007], months=list(range(1,13)),data_dir='C:/users/d29905p/Documents/longitudinal_airline_network/'):
-    
-    days_in_month = [31,28,31,30,31,30,31,31,30,31,30,31]
-    quarters = [1,1,1,2,2,2,3,3,3,4,4,4]
-    months_str = ['January','February','March','April','May','June','July','August','September','October','November','December']
-    for year in years:
-        for month in months:
-            month_str = months_str[month-1]
-            yr_month_full_file = pd.read_csv(data_dir + 'aotp_files/aotp_%s_%s.csv' % (str(year),str(month)))
-            #filter by airport
-            yr_month_full_file = yr_month_full_file
-   
 
-def t100_merge( merge_HP = True, freq_cuttoff = 2, ms_cuttoff=.01,airports = ['SEA','PDX','SFO','SAN','LAX','LAS','PHX','OAK','ONT','SMF','SJC'],airlines = ['AA','AS','MQ','OO','QX','UA','US','WN','HP'],years = [2007], months=list(range(1,13)),data_dir='C:/users/d29905p/Documents/longitudinal_airline_network/'):
-    days_in_month = [31,28,31,30,31,30,31,31,30,31,30,31]
-    quarters = [1,1,1,2,2,2,3,3,3,4,4,4]
-    months_str = ['January','February','March','April','May','June','July','August','September','October','November','December']
-    t100_year_dfs = []  
-    def create_market(row):
-        market = [row['ORIGIN'], row['DEST']]
-        market.sort()
-        return "_".join(market)
-    for year in years:
-        t100_yr = pd.read_csv(data_dir + 't100_files/t100_%s.csv' % str(year))
-        if airlines:
-            t100_yr_network = t100_yr[t100_yr['ORIGIN'].isin(airports) & t100_yr['DEST'].isin(airports) & t100_yr['UNIQUE_CARRIER'].isin(airlines) ]
-        else:
-            t100_yr_network = t100_yr[t100_yr['ORIGIN'].isin(airports) & t100_yr['DEST'].isin(airports) ]
-            
-        t100_yr_network['BI_MARKET'] = t100_yr_network.apply(create_market,1)
-        if merge_HP:
-            t100_yr_network['UNIQUE_CARRIER']=t100_yr_network['UNIQUE_CARRIER'].replace('HP','US')
-        #sum between craft type
-        t100_yr_network_merge_mkt = t100_yr_network[['UNIQUE_CARRIER','BI_MARKET','MONTH','DEPARTURES_SCHEDULED','PASSENGERS','ORIGIN','DEST']].groupby(('UNIQUE_CARRIER','BI_MARKET','ORIGIN','DEST','MONTH')).aggregate(np.sum).reset_index()
-        #sum between craft type
-        t100_yr_network_merge_craft = t100_yr_network_merge_mkt[['UNIQUE_CARRIER','BI_MARKET','MONTH','DEPARTURES_SCHEDULED','PASSENGERS']].groupby(('UNIQUE_CARRIER','BI_MARKET','MONTH')).aggregate(np.mean).reset_index()        
-        t100_yr_network_merge_craft['DAILY_FREQ'] = t100_yr_network_merge_craft.apply(lambda row: row['DEPARTURES_SCHEDULED']/float(days_in_month[int(row['MONTH'])-1]),1)
-        t100_yr_network_merge_craft_freq_filt = t100_yr_network_merge_craft[t100_yr_network_merge_craft['DAILY_FREQ']>=freq_cuttoff]
-        #t100_yr_network_merge_craft_freq_filt
-        t100_grouped = t100_yr_network_merge_craft_freq_filt.groupby(('BI_MARKET','MONTH'))
-        grouplist = []
-        for market in list(set(t100_yr_network_merge_craft_freq_filt['BI_MARKET'].tolist())):
-            for month in range(1,13):
-                try:
-                    market_group = t100_grouped.get_group((market,month))
-                    new_group = market_rank(market_group, ms_cuttoff=ms_cuttoff)
-                    grouplist.append(new_group)
-                except KeyError:
-                    pass
-        t100ranked = pd.concat(grouplist,axis=0)
-    '''
-    add concatenation of multiple years later
-    '''
     
-    #plot frequencies of major carriers in different markets over course of year as well as number of competitors (especially relelvant when we do a market share cuttoff)
-    t100markets = t100ranked.groupby('BI_MARKET')    
-    markets = list(set(t100ranked['BI_MARKET'].tolist()))  # WHY IS THIS DIFFERENT markets = list(set(t100_yr_network_merge_craft_freq_filt['BI_MARKET'].tolist())) 
-    for market in markets:
-        market_df = t100markets.get_group(market)    
-        plt.subplot(2,1,1)
-        plt.ylabel('Flights per Day')
-        for carrier in list(set(market_df['UNIQUE_CARRIER'].tolist())):
-            carrier_gb = market_df[market_df['UNIQUE_CARRIER']==carrier].set_index('MONTH')
-            carrier_vector = []
-            for i in range(1,13):
-                try:
-                    carrier_vector.append(float(carrier_gb.loc[i]['DAILY_FREQ']))
-                except KeyError:
-                    carrier_vector.append(0.0)
-            plt.plot(list(range(1,13)),carrier_vector, label=carrier)
-        plt.legend(shadow=True, loc=3,fancybox=True)   
-        plt.title('Frequency Competition in %s Market, %s' % (market, year))
-        #plt.show()
-        #ADD MARKET COMPETITOR MARKER?? SEARCH FOR ENTRIES
-        plt.axis([1, 12, 0, 22])
-        plt.subplot(2,1,2)
-        plt.ylabel('Mkt Share')
-        plt.xlabel('time (months)')
-        plt.axis([1, 12, 0, 1.1])
-        for carrier in list(set(market_df['UNIQUE_CARRIER'].tolist())):
-            carrier_gb = market_df[market_df['UNIQUE_CARRIER']==carrier].set_index('MONTH')
-            carrier_vector = []
-            for i in range(1,13):
-                try:
-                    carrier_vector.append(float(carrier_gb.loc[i]['MS_TOT']))
-                except KeyError:
-                    carrier_vector.append(0.0)
-            plt.plot(list(range(1,13)),carrier_vector, label=carrier)
-        #plt.legend(shadow=True, loc=2,fancybox=True)       
-        
-        plt.savefig(data_dir+'t100_%s_pics/12month_ms-freq_11port_HP-US-merge_%s.jpg' % (year,market))
-        plt.clf()
-            
-            
-            
-    
-        
-        
-'''
-merge on craft type
-for each market, get number of competitors  who meet frequency and (market share thresholds), each month 
-get market_carrier combos, 
-for each carrier, graph frequencies in each of its markets over year
-more importantly, for each market, make graph (and save) of frequencies over course of the year for the major carriers in that market
-'''
-
-def market_rank(gb, ms_cuttoff):                                  
-    Mtot = gb['PASSENGERS'].sum()
-    gb['MARKET_TOT'] = np.repeat(Mtot,gb.shape[0] )    
-    Mcount =gb.shape[0]
-    gb['MARKET_COMPETITORS'] = np.repeat(Mcount,gb.shape[0] )
-    rank = np.array(gb['PASSENGERS'].tolist()).argsort()[::-1].argsort() +1 
-    gb['MARKET_RANK'] = rank         
-    gb = gb.sort(columns=['MARKET_RANK'],ascending=True,axis =0)        
-    gb['MS_TOT']=gb['PASSENGERS']/gb['MARKET_TOT']
-    #cumulative market share upto and including that ranking
-    gb['CUM_MS']=gb.apply(lambda x: gb['MS_TOT'][:x['MARKET_RANK']].sum(), axis=1)
-    #cumulative market share upto that ranking
-    gb['PREV_CUM_MS']=gb.apply(lambda x: gb['MS_TOT'][:x['MARKET_RANK']-1].sum(), axis=1)
-    #remove those carriers that appear after cuttoff
-    gb=gb[gb['MS_TOT']>=ms_cuttoff]
-    #recalculate market shares
-    Mtot = gb['PASSENGERS'].sum()
-    #get total market size
-    gb['MARKET_TOT'] = np.repeat(Mtot,gb.shape[0] )   
-    #get total number of competitors in market and save as column 
-    Mcount =gb.shape[0]
-    gb['MARKET_COMPETITORS'] = np.repeat(Mcount,gb.shape[0] )
-    #get market share as passengers for that carrier over total market size 
-    gb['MS_TOT']=gb['PASSENGERS']/gb['MARKET_TOT']
-    return gb    
